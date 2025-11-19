@@ -176,7 +176,7 @@ const char **argparse_vals(argparse_t *ap, const char *name, size_t *nval)
         if (nval)
                 *nval = ent->nval;
 
-        return ent->vals;
+        return (const char **) ent->vals;
 }
 
 const char *argparse_val(argparse_t *ap, const char *name)
