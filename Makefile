@@ -1,5 +1,6 @@
 CC := gcc
-CFLAGS := -Wall -O3 -std=c17
+DEFINES := -D_GNU_SOURCE
+CFLAGS := -Wall -O3 -std=c17 $(DEFINES)
 INCLUDE := -Itools/include
 
 BUILDDIR := build
@@ -12,9 +13,9 @@ TOOLS_SRCS := $(wildcard $(TOOLS_DIR)/*.c)
 SIZ_SRCS := $(wildcard $(SIZ_DIR)/*.c)
 
 TOOLS_OBJS := $(TOOLS_SRCS:$(TOOLS_DIR)/%.c=$(OBJDIR)/tools/%.o)
-SIZ_OBJS := $(SIZ_SRCS:$(SIZ_DIR)/%.c=$(OBJDIR)/len/%.o)
+SIZ_OBJS := $(SIZ_SRCS:$(SIZ_DIR)/%.c=$(OBJDIR)/siz/%.o)
 
-SIZ_BIN := $(BUILDDIR)/len
+SIZ_BIN := $(BUILDDIR)/siz
 
 TARGETS := $(SIZ_BIN)
 
@@ -27,7 +28,7 @@ $(OBJDIR)/tools/%.o: $(TOOLS_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-$(OBJDIR)/len/%.o: $(SIZ_DIR)/%.c
+$(OBJDIR)/siz/%.o: $(SIZ_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 

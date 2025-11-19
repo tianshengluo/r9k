@@ -1,6 +1,7 @@
 /* len.c: Created by Ekko on 2025/11/18 */
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <argparse.h>
 
 #define NSZ_VERSION "1.0.0"
@@ -8,6 +9,8 @@
 static struct option options[] = {
         { 'v', "version", no_argument, opt_single, "版本号" },
         { 'u', "utf8", no_argument, opt_single, "按字符计算" },
+        { '?', "unh", no_argument, opt_single, "关闭以人类可读单位显示大小" },
+        { 'f', "file", no_argument, opt_single, "计算文件大小" },
         { 0 },
 };
 
@@ -21,6 +24,43 @@ static size_t utf8len(const char *str)
         return len;
 }
 
+static ssize_t filesize(const char *path)
+{
+        FILE *fp;
+        long int size;
+
+        fp = fopen(path, "rb");
+        if (!fp)
+                return -1;
+
+        fseek(fp, 0, SEEK_END);
+        size = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        fclose(fp);
+
+        return size;
+}
+
+static double human_size(size_t size, const char **unit)
+{
+        /* K Byte */
+        if (size <= (1024 * 1024)) {
+                *unit = "K";
+                return (double) size / 1024;
+        }
+
+        /* M Byte */
+        if (size <= (1024 * 1024 * 1024)) {
+                *unit = "M";
+                return (double) size / 1024 / 1024;
+        }
+
+        /* G Byte */
+        *unit = "G";
+        return (double) size / 1024 / 1024 / 1024;
+}
+
 int main(int argc, char **argv)
 {
 
@@ -28,12 +68,33 @@ int main(int argc, char **argv)
         ap = argparse_parse(options, argc, argv);
 
         if (!ap) {
-                printf("%s\n", argparse_error());
+                fprintf(stderr, "siz error: %s\n", argparse_error());
                 exit(1);
         }
 
         if (argparse_has(ap, "version")) {
                 printf("siz version: %s\n", NSZ_VERSION);
+                exit(0);
+        }
+
+        if (argparse_has(ap, "file")) {
+                double hsize;
+                const char *unit;
+                ssize_t size = filesize(argparse_arg(ap));
+
+                if (size == -1) {
+                        fprintf(stderr, "siz error: %s\n", strerror(errno));
+                        exit(1);
+                }
+
+                if (argparse_has(ap, "unh")) {
+                        printf("%ld\n", size);
+                        exit(0);
+                }
+
+                hsize = human_size(size, &unit);
+                printf("%.2f%s\n", hsize, unit);
+
                 exit(0);
         }
 

@@ -4,8 +4,10 @@
 #include <argparse.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+#include <sys/types.h>
 
-const char *error = "Undefined error";
+static char error_buf[4096];
 
 struct optent
 {
@@ -23,6 +25,14 @@ struct argparse
         size_t nent;
         char *arg; /* non option */
 };
+
+static void seterror(const char *fmt, ...)
+{
+        va_list va;
+        va_start(va, fmt);
+        vsnprintf(error_buf, sizeof(error_buf), fmt, va);
+        va_end(va);
+}
 
 static const struct optent *entfind(argparse_t *ap, const char *optname)
 {
@@ -57,6 +67,11 @@ static ssize_t optfind(argparse_t *ap, const char *arg)
                 is_short = 1;
         } else if (arg[0] == '-' && arg[1] == '-') {
                 arg += 2;
+        }
+
+        if (is_short && strlen(arg) > 1) {
+                seterror("short option bounding not supported: -%s", arg);
+                return -2;
         }
 
         for (i = 0; i < ap->nopt; i++) {
@@ -126,7 +141,7 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
         for (int i = 1; i < argc; i++) {
                 if (argv[i][0] != '-') {
                         if (ap->arg) {
-                                error = "too many arguments";
+                                seterror("too many arguments");
                                 argparse_free(ap);
                                 return NULL;
                         }
@@ -139,13 +154,26 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                 if (optid == -1)
                         continue;
 
+                if (optid == -2) {
+                        argparse_free(ap);
+                        return NULL;
+                }
+
                 op = &ap->opts[optid];
 
                 char *val = NULL;
-                if ((op->has_arg == required_argument || op->has_arg == optional_argument)
-                        && argv[i + 1][0] != '-') {
-                        val = argv[i + 1];
-                        ++i;
+                int next = i + 1;
+                if (next < argc) {
+                        if ((op->has_arg == required_argument) && argv[next][0] != '-') {
+                                val = argv[i + 1];
+                                ++i;
+                        }
+                }
+
+                if (op->has_arg == required_argument && !val) {
+                        seterror("option: <--%s> required argument", op->long_name);
+                        argparse_free(ap);
+                        return NULL;
                 }
 
                 addval(ap, optid, val);
@@ -214,5 +242,5 @@ const char *argparse_arg(argparse_t *ap)
 
 const char *argparse_error()
 {
-        return error;
+        return error_buf;
 }

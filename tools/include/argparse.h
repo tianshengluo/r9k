@@ -6,7 +6,6 @@
 
 #define no_argument       (0)
 #define required_argument (1)
-#define optional_argument (2)
 
 #define opt_single        (0)
 #define opt_multi         (1)
