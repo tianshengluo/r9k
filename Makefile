@@ -6,28 +6,28 @@ BUILDDIR := build
 OBJDIR := $(BUILDDIR)/objs
 
 TOOLS_DIR := tools
-LEN_DIR := len
+NSZ_DIR := nsz
 
 TOOLS_SRCS := $(wildcard $(TOOLS_DIR)/*.c)
-LEN_SRCS := $(wildcard $(LEN_DIR)/*.c)
+NSZ_SRCS := $(wildcard $(NSZ_DIR)/*.c)
 
 TOOLS_OBJS := $(TOOLS_SRCS:$(TOOLS_DIR)/%.c=$(OBJDIR)/tools/%.o)
-LEN_OBJS := $(LEN_SRCS:$(LEN_DIR)/%.c=$(OBJDIR)/len/%.o)
+NSZ_OBJS := $(NSZ_SRCS:$(NSZ_DIR)/%.c=$(OBJDIR)/len/%.o)
 
-LEN_BIN := $(BUILDDIR)/len
+NSZ_BIN := $(BUILDDIR)/len
 
-TARGETS := $(LEN_BIN)
+TARGETS := $(NSZ_BIN)
 
 all:$(TARGETS)
 
-$(LEN_BIN): $(LEN_OBJS) $(TOOLS_OBJS)
+$(NSZ_BIN): $(NSZ_OBJS) $(TOOLS_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDE) $^ -o $@
 
 $(OBJDIR)/tools/%.o: $(TOOLS_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-$(OBJDIR)/len/%.o: $(LEN_DIR)/%.c
+$(OBJDIR)/len/%.o: $(NSZ_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
