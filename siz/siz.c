@@ -11,6 +11,7 @@ static struct option options[] = {
         { 'u', "utf8", no_argument, opt_single, "按字符计算" },
         { '?', "unh", no_argument, opt_single, "关闭以人类可读单位显示大小" },
         { 'f', "file", no_argument, opt_single, "计算文件大小" },
+        { 'a', "aval", required_argument, opt_multi, "计算文件大小" },
         { 0 },
 };
 

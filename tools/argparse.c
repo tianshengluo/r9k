@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <sys/types.h>
 
 static char error_buf[4096];
@@ -85,46 +86,64 @@ static ssize_t optfind(argparse_t *ap, const char *arg)
         return -1;
 }
 
-static void addval(argparse_t *ap, size_t optid, const char *val)
+static int addval(argparse_t *ap, size_t optid, const char *val)
 {
         size_t i;
         const struct option *op = NULL;
-        struct optent *fo = NULL;
+        struct optent *ent = NULL;
+        struct optent *tmp_ents;
+        char **tmp_vals;
+        char *valdup;
 
         op = &ap->opts[optid];
 
         for (i = 0; i < ap->nent; i++) {
                 if (ap->ents[i].opt == op) {
-                        fo = &ap->ents[i];
+                        ent = &ap->ents[i];
                         break;
                 }
         }
 
-        if (!fo) {
-                struct optent *tmp;
-
-                tmp = realloc(ap->ents, sizeof(*ap->ents) * (ap->nent + 1));
-                if (!tmp)
-                        return;
-
-                ap->ents = tmp;
-                fo = &ap->ents[ap->nent++];
-                fo->opt = &ap->opts[optid];
-                fo->vals = NULL;
-                fo->nval = 0;
-                fo->seen = 0;
+        if (ent != NULL && val != NULL && op->multi != opt_multi) {
+                seterror("option: --%s too many argument, unsupported multi args", op->long_name);
+                return -1;
         }
 
-        fo->seen++;
+        if (!ent) {
+                tmp_ents = realloc(ap->ents, sizeof(*ap->ents) * (ap->nent + 1));
+                if (!tmp_ents) {
+                        seterror(strerror(errno));
+                        return -1;
+                }
+
+                ap->ents = tmp_ents;
+                ent = &ap->ents[ap->nent++];
+                ent->opt = &ap->opts[optid];
+                ent->vals = NULL;
+                ent->nval = 0;
+                ent->seen = 0;
+        }
+
+        ent->seen++;
 
         if (val) {
-                char **tmp = realloc(fo->vals, sizeof(*tmp) * (fo->nval + 1));
-                if (!tmp)
-                        return;
+                tmp_vals = realloc(ent->vals, sizeof(*tmp_vals) * (ent->nval + 1));
+                if (!tmp_vals) {
+                        seterror(strerror(errno));
+                        return -1;
+                }
 
-                fo->vals = tmp;
-                fo->vals[fo->nval++] = strdup(val);
+                valdup = strdup(val);
+                if (!valdup) {
+                        seterror(strerror(errno));
+                        return -1;
+                }
+
+                ent->vals = tmp_vals;
+                ent->vals[ent->nval++] = valdup;
         }
+
+        return 0;
 }
 
 argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
@@ -147,6 +166,11 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                         }
 
                         ap->arg = strdup(argv[i]);
+                        if (!ap->arg) {
+                                seterror(strerror(errno));
+                                argparse_free(ap);
+                                return NULL;
+                        }
                 }
 
                 optid = optfind(ap, argv[i]);
@@ -176,13 +200,16 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                         return NULL;
                 }
 
-                addval(ap, optid, val);
+                if (addval(ap, optid, val) == -1) {
+                        argparse_free(ap);
+                        return NULL;
+                }
         }
 
         return ap;
 }
 
-void argparse_free(struct argparse *ap)
+void argparse_free(argparse_t *ap)
 {
         struct optent *op;
 

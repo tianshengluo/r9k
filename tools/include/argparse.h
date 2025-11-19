@@ -22,11 +22,11 @@ struct option
 typedef struct argparse argparse_t;
 
 argparse_t *argparse_parse(const struct option *opts, int argc, char **argv);
-void argparse_free(struct argparse *ap);
+void argparse_free(argparse_t *ap);
 int argparse_has(argparse_t *ap, const char *name);
 const char **argparse_vals(argparse_t *ap, const char *name, size_t *nval);
 const char *argparse_val(argparse_t *ap, const char *name);
 const char *argparse_arg(argparse_t *ap);
-const char *argparse_error();
+const char *argparse_error(void);
 
 #endif /* ARGPARSE_H_ */
