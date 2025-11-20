@@ -18,6 +18,7 @@ static struct option options[] = {
         { 's', "smallest", required_argument | allow_group, "small file" },
         { 'd', "disk", required_argument | allow_group, "disk size" },
         { 'c', "count", required_argument | allow_group, "count directory file size" },
+        { '?', "verbose", no_arguments, "verbose" },
         { 0 },
 };
 
@@ -89,6 +90,9 @@ int main(int argc, char **argv)
 
         if (argparse_has(ap, "c"))
                 printf("c: %s\n", argparse_val(ap, "c"));
+
+        if (argparse_has(ap, "verbose"))
+                printf("verbose: %s\n", argparse_val(ap, "verbose"));
 
         argparse_free(ap);
 

@@ -152,8 +152,10 @@ static ssize_t find_options(argparse_t *ap, const char *arg, size_t **p_iarr, ui
 
                 if (strcmp(op->long_name, arg) == 0) {
                         *p_iarr = malloc(sizeof(size_t));
-                        if (!*p_iarr)
+                        if (!*p_iarr) {
+                                seterror(strerror(errno));
                                 return -1;
+                        }
 
                         (*p_iarr)[0] = i;
                          *p_count = 1;
@@ -226,12 +228,51 @@ static int add_option_value(argparse_t *ap, size_t optid, const char *val)
         return 0;
 }
 
-argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
+static int parse_arguments(argparse_t *ap, const struct option *opts, int *i, int argc, char **argv)
 {
-        argparse_t *ap;
         size_t *iarr = NULL;
         uint32_t count;
         const struct option *op;
+        char *val = NULL;
+        int next = *i + 1;
+
+        if (find_options(ap, argv[*i], &iarr, &count) == -1)
+                goto fail;
+
+        for (uint32_t j = 0; j < count; j++) {
+                op = &ap->opts[iarr[j]];
+
+                if (next < argc && !val) {
+                        if ((op->flags & required_argument) && argv[next][0] != '-') {
+                                val = argv[next];
+                                (*i)++;
+                        }
+                }
+
+                if (op->flags & required_argument && !val) {
+                        seterror("option: --%s required argument", op->long_name);
+                        goto fail;
+                }
+
+                if (add_option_value(ap, iarr[j], val) == -1)
+                        goto fail;
+        }
+
+        free(iarr);
+        iarr = NULL;
+        count = 0;
+
+        return 0;
+fail:
+        if (iarr)
+                free(iarr);
+
+        return -1;
+}
+
+argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
+{
+        argparse_t *ap;
 
         if (!opts || argc < 1 || !argv) {
                 seterror("invalid arguments");
@@ -261,39 +302,10 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
                         continue;
                 }
 
-                if (find_options(ap, argv[i], &iarr, &count) == -1) {
+                if (parse_arguments(ap, opts, &i, argc, argv) == -1) {
                         argparse_free(ap);
                         return NULL;
                 }
-
-                char *val = NULL;
-                int next = i + 1;
-
-                for (uint32_t j = 0; j < count; j++) {
-                        op = &ap->opts[iarr[j]];
-
-                        if (next < argc && !val) {
-                                if ((op->flags & required_argument) && argv[next][0] != '-') {
-                                        val = argv[i + 1];
-                                        ++i;
-                                }
-                        }
-
-                        if (op->flags & required_argument && !val) {
-                                seterror("option: <--%s> required argument", op->long_name);
-                                argparse_free(ap);
-                                return NULL;
-                        }
-
-                        if (add_option_value(ap, iarr[j], val) == -1) {
-                                argparse_free(ap);
-                                return NULL;
-                        }
-                }
-
-                free(iarr);
-                iarr = NULL;
-                count = 0;
         }
 
         return ap;
