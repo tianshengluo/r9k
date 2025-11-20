@@ -17,7 +17,7 @@
 static struct option options[] = {
         { 'v', "version", no_argument, opt_single, "版本号" },
         { 'u', "utf8", no_argument, opt_single, "按字符计算" },
-        { 'r', "raw", no_argument, opt_single, "关闭以人类可读单位显示大小" },
+        { '?', "rqw", no_argument, opt_single, "以字节数显示" },
         { 'f', "file", no_argument, opt_single, "计算文件大小" },
         { 0 },
 };
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
                         exit(1);
                 }
 
-                if (argparse_has(ap, "unh")) {
+                if (argparse_has(ap, "raw")) {
                         printf("%ld\n", size);
                         exit(0);
                 }
