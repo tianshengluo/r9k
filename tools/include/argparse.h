@@ -14,8 +14,7 @@
 
 #define no_arguments      (0)
 #define required_argument (1 << 1)
-#define opt_multi         (1 << 2)
-#define allow_group       (1 << 3)
+#define multi_argument    (1 << 2)
 
 struct option
 {
@@ -32,7 +31,7 @@ void argparse_free(argparse_t *ap);
 int argparse_has(argparse_t *ap, const char *name);
 const char *argparse_val(argparse_t *ap, const char *name);
 const char **argparse_multi_val(argparse_t *ap, const char *name, size_t *nval);
-const char *argparse_arg(argparse_t *ap);
+const char **argparse_args(argparse_t *ap, size_t *narg);
 const char *argparse_error(void);
 
 #endif /* ARGPARSE_H_ */

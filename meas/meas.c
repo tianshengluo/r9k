@@ -14,11 +14,9 @@
 #define MEAS_VERSION "1.0.0"
 
 static struct option options[] = {
-        { 'l', "largest", required_argument | allow_group, "large file" },
-        { 's', "smallest", required_argument | allow_group, "small file" },
-        { 'd', "disk", required_argument | allow_group, "disk size" },
-        { 'c', "count", required_argument | allow_group, "count directory file size" },
-        { '?', "verbose", no_arguments, "verbose" },
+        { 'a', "a1", no_arguments, "1" },
+        { 'b', "b2", required_argument, "2" },
+        { 'c', "c3", no_arguments, "3" },
         { 0 },
 };
 
@@ -79,20 +77,23 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
         }
 
-        if (argparse_has(ap, "l"))
-                printf("l: %s\n", argparse_val(ap, "l"));
+        if (argparse_has(ap, "a")) {
+                printf("a: exist\n");
+        }
 
-        if (argparse_has(ap, "s"))
-                printf("s: %s\n", argparse_val(ap, "s"));
+        if (argparse_has(ap, "b")) {
+                printf("b: exist\n");
+                printf("b value: %s\n", argparse_val(ap, "b"));
+        }
 
-        if (argparse_has(ap, "d"))
-                printf("d: %s\n", argparse_val(ap, "d"));
+        if (argparse_has(ap, "b")) {
+                printf("c: exist\n");
+        }
 
-        if (argparse_has(ap, "c"))
-                printf("c: %s\n", argparse_val(ap, "c"));
-
-        if (argparse_has(ap, "verbose"))
-                printf("verbose: %s\n", argparse_val(ap, "verbose"));
+        size_t count;
+        const char **args = argparse_args(ap, &count);
+        for (int i = 0; i < count; i++)
+                printf("arg[%d]: %s\n", i, args[i]);
 
         argparse_free(ap);
 

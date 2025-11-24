@@ -30,7 +30,8 @@ struct argparse
         size_t nopt;
         struct optent *ents;
         size_t nent;
-        char *arg; /* non option */
+        char **args; /* non option */
+        size_t narg;
 };
 
 static void seterror(const char *fmt, ...)
@@ -77,22 +78,28 @@ static ssize_t parse_short_opts(argparse_t *ap, const char *arg, size_t **p_iarr
 {
         char short_name;
         size_t i;
-        const struct option *opt;
+        const struct option *opt, *found;
         size_t *iarr = NULL;
         size_t *tmp_iarr = NULL;
         uint32_t count = 0;
+        uint32_t required_opt_count = 0;
 
         while (*arg) {
                 short_name = arg[0];
+                found = NULL;
 
                 for (i = 0; i < ap->nopt; i++) {
                         opt = &ap->opts[i];
 
                         if (opt->short_name == short_name) {
                                 count += 1;
+                                found = opt;
 
-                                if (!(opt->flags & allow_group)) {
-                                        seterror("option <--%s> not support group", opt->long_name);
+                                if (opt->flags & required_argument)
+                                        required_opt_count++;
+
+                                if (required_opt_count > 1) {
+                                        seterror("-%c only one argument", short_name);
                                         goto fail;
                                 }
 
@@ -111,6 +118,11 @@ static ssize_t parse_short_opts(argparse_t *ap, const char *arg, size_t **p_iarr
                                 iarr[count - 1] = i;
                                 break;
                         }
+                }
+
+                if (found == NULL) {
+                        seterror("unknown option: -%c", short_name);
+                        goto fail;
                 }
 
                 arg++;
@@ -185,7 +197,7 @@ static int add_option_value(argparse_t *ap, size_t optid, const char *val)
                 }
         }
 
-        if (ent != NULL && val != NULL && !(op->flags & opt_multi)) {
+        if (ent != NULL && val != NULL && !(op->flags & multi_argument)) {
                 seterror("option: --%s too many argument, unsupported multi args", op->long_name);
                 return -1;
         }
@@ -228,7 +240,7 @@ static int add_option_value(argparse_t *ap, size_t optid, const char *val)
         return 0;
 }
 
-static int parse_arguments(argparse_t *ap, const struct option *opts, int *i, int argc, char **argv)
+static int parse_arguments(argparse_t *ap, int *i, int argc, char **argv)
 {
         size_t *iarr = NULL;
         uint32_t count;
@@ -270,6 +282,30 @@ fail:
         return -1;
 }
 
+static int add_argument(argparse_t *ap, const char *arg)
+{
+        char **tmp_args = NULL;
+
+        if (!ap->args) {
+                ap->args = calloc(1, sizeof(*ap->args));
+                if (!ap->args)
+                        return -1;
+
+                ap->narg = 0;
+        }
+
+        tmp_args = realloc(ap->args, sizeof(*ap->args) * (ap->narg + 1));
+        if (!tmp_args) {
+                seterror(strerror(errno));
+                return -1;
+        }
+
+        ap->args = tmp_args;
+        ap->args[ap->narg++] = strdup(arg);
+
+        return 0;
+}
+
 argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
 {
         argparse_t *ap;
@@ -280,35 +316,28 @@ argparse_t *argparse_parse(const struct option *opts, int argc, char **argv)
         }
 
         ap = calloc(1, sizeof(*ap));
+        if (!ap)
+                return NULL;
+
         ap->opts = opts;
         ap->nopt = count_options(opts);
-        ap->arg = NULL;
 
         for (int i = 1; i < argc; i++) {
                 if (argv[i][0] != '-') {
-                        if (ap->arg) {
-                                seterror("too many arguments");
-                                argparse_free(ap);
-                                return NULL;
-                        }
-
-                        ap->arg = strdup(argv[i]);
-                        if (!ap->arg) {
-                                seterror(strerror(errno));
-                                argparse_free(ap);
-                                return NULL;
-                        }
-
+                        if (add_argument(ap, argv[i]) == -1)
+                                goto fail;
                         continue;
                 }
 
-                if (parse_arguments(ap, opts, &i, argc, argv) == -1) {
-                        argparse_free(ap);
-                        return NULL;
-                }
+                if (parse_arguments(ap, &i, argc, argv) == -1)
+                        goto fail;
         }
 
         return ap;
+
+fail:
+        argparse_free(ap);
+        return NULL;
 }
 
 void argparse_free(argparse_t *ap)
@@ -318,8 +347,11 @@ void argparse_free(argparse_t *ap)
         if (!ap)
                 return;
 
-        if (ap->arg)
-                free(ap->arg);
+        if (ap->args) {
+                for (size_t i = 0; i < ap->narg; i++)
+                        free(ap->args[i]);
+                free(ap->args);
+        }
 
         for (size_t i = 0; i < ap->nent; i++) {
                 op = &ap->ents[i];
@@ -364,9 +396,10 @@ const char **argparse_multi_val(argparse_t *ap, const char *name, size_t *nval)
         return (const char **) ent->vals;
 }
 
-const char *argparse_arg(argparse_t *ap)
+const char **argparse_args(argparse_t *ap, size_t *narg)
 {
-        return ap->arg;
+        *narg = ap->narg;
+        return (const char **) ap->args;
 }
 
 const char *argparse_error(void)
