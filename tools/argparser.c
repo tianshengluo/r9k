@@ -156,7 +156,8 @@ static int take_val(struct argparser *ap, struct option *opt, int is_long, char 
         if (defval)
                 val = defval;
 
-        *opt->_option_ref = opt;
+        if (opt->_refs)
+                *opt->_refs = opt;
 
         if (opt->max > 0) {
                 if (!val) {
@@ -258,8 +259,13 @@ void argparser_free(struct argparser *ap)
         if (!ap)
                 return;
 
-        for (uint32_t i = 0; i < ap->nopt; i++)
+        for (uint32_t i = 0; i < ap->nopt; i++) {
+                struct option *opt = ap->opts[i];
+                if (opt->vals != NULL)
+                        free(opt->vals);
+
                 free(ap->opts[i]);
+        }
 
         free(ap);
 }
@@ -289,7 +295,7 @@ int argparser_addn(struct argparser *ap, struct option **pp_option, const char *
         opt->longopt = longopt;
         opt->max = max;
         opt->tips = tips;
-        opt->_option_ref = pp_option;
+        opt->_refs = pp_option;
 
         r = add_option(ap, opt);
         if (r != 0) {

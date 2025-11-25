@@ -32,7 +32,7 @@ struct option
 
         /* built-in */
         uint32_t _capacity;
-        struct option** _option_ref;
+        struct option** _refs;
 };
 
 struct argparser;
