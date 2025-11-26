@@ -2,25 +2,13 @@
  * SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
  *
- * argparse - Lightweight command-line argument parsing library
- *
- * Provides multi-sytle command parsing with support for both
- * short and long options. Short option support string type,
- * and single-character options can be grouped.
- *
- * The rules:
- *  - If a long option include 'abc', it gets proirity in processing.
- *  - If 'abc' not found in long option, it will be split into single-character
- *    options for short option matching.
- *  - Supports argument specified with either spaces or equal signs.
- *  - When arguments are specified using spaces, multiple values are supported.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <argparser.h>
 #include <string.h>
 
-#define MEAS_VERSION "1.0.0"
+#define MEAS_VERSION "1.0"
 
 static size_t strlen_utf8(const char *str)
 {
@@ -36,10 +24,28 @@ static size_t strlen_utf8(const char *str)
         return len;
 }
 
+static void show_version()
+{
+        printf("meas version: %s\n", MEAS_VERSION);
+        exit(0);
+}
+
+static void show_help()
+{
+        printf("Usage [-h] [-u] [-S]\n");
+        exit(0);
+}
+
+static void show_strlen(struct option *unicode, const char *str)
+{
+        printf("%zu\n", unicode ? strlen_utf8(str) : strlen(str));
+}
+
 int main(int argc, char **argv)
 {
         struct argparser *ap;
         struct option *help;
+        struct option *version;
         struct option *str;
         struct option *unicode;
 
@@ -50,8 +56,9 @@ int main(int argc, char **argv)
         }
 
         argparser_add0(ap, &help, "h", "help", "show this help message and exit", OP_NULL);
+        argparser_add0(ap, &version, "version", "version", "show current version", OP_NULL);
         argparser_add1(ap, &str, "S", "str", "input string value", OP_NULL | OP_REQVAL);
-        argparser_add0(ap, &unicode, "u", "unicode", "input string value", OP_NULL);
+        argparser_add0(ap, &unicode, "u", "unicode", "use unicode parse string length", OP_NULL);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));
@@ -59,20 +66,10 @@ int main(int argc, char **argv)
                 exit(1);
         }
 
-        if (help) {
-                printf("Usage [-h] [-u] [-S]\n");
-                goto end;
-        }
+        if (help) show_help();
+        if (version) show_version();
+        if (str) show_strlen(unicode, str->sval);
 
-        if (str) {
-                size_t len = unicode
-                        ? strlen_utf8(str->sval)
-                        : strlen(str->sval);
-                printf("%lu\n", len);
-                goto end;
-        }
-
-end:
         argparser_free(ap);
 
         return 0;
