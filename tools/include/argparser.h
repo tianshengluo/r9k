@@ -23,6 +23,10 @@
 
 #include <stdint.h>
 
+#define OP_NULL   (0)
+#define OP_REQVAL (1 << 0) /* required value */
+#define OP_CONCAT (1 << 1) /* -O1 -O2 */
+
 struct option
 {
         const char*  shortopt;
@@ -32,6 +36,7 @@ struct option
         const char*  sval;
         uint32_t     count;
         const char** vals;
+        uint32_t     flags;
 
         /* built-in */
         uint32_t _capacity;
@@ -44,12 +49,30 @@ struct argparser;
 struct argparser *argparser_create(void);
 void argparser_free(struct argparser *ap);
 
-/* Add options to argparser, if not short name uses '?'.
+/* Add options to argparser, if no short name set '?' to the shortopt.
  * Default no argument option can merge to one option for short name.
  * Short option group only last one option can accept parameter. */
-int argparser_add0(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, const char *tips); // no argument
-int argparser_add1(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, const char *tips); // 1 argument
-int argparser_addn(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, int max, const char *tips); // n argument
+int argparser_add0(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   const char *tips,
+                   uint32_t flags); /* no argument */
+
+int argparser_add1(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   const char *tips,
+                   uint32_t flags); /* 1 argument */
+
+int argparser_addn(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   int max,
+                   const char *tips,
+                   uint32_t flags); /* n argument */
 
 /* Parsing arguments */
 int argparser_run(struct argparser *ap, int argc, char *argv[]);

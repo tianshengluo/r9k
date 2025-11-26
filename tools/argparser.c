@@ -30,6 +30,8 @@
 #define LONG     1
 #define SHORT    0
 
+#define OPT_PREFIX(is_long) (is_long ? "--" : "-")
+
 struct argparser
 {
         /* options */
@@ -78,10 +80,8 @@ static int store_position_val(struct argparser *ap, const char *val)
 
 static int store_option_val(struct argparser *ap, struct option *opt, int is_long, char *tok, const char *val)
 {
-        const char **tmp_vals;
-
         if (opt->count > opt->max) {
-                error(ap, "%s%s option value out of %d", is_long ? "--" : "-", tok, opt->max);
+                error(ap, "%s%s option value out of %d", OPT_PREFIX(is_long), tok, opt->max);
                 return -ENOSPC;
         }
 
@@ -96,6 +96,7 @@ static int store_option_val(struct argparser *ap, struct option *opt, int is_lon
         }
 
         if (opt->count >= opt->_capacity) {
+                const char **tmp_vals;
                 opt->_capacity *= 2;
                 tmp_vals = realloc(opt->vals, sizeof(char *) * opt->_capacity);
                 if (!tmp_vals) {
@@ -165,7 +166,13 @@ static int take_val(struct argparser *ap, struct option *opt, int is_long, char 
         if (opt->max > 0) {
                 if (!val) {
                         val = argv[*i + 1];
-                        if (val[0] == '-')
+
+                        if (opt->flags & OP_REQVAL && !val) {
+                                error(ap, "Option %s%s missing required argument", OPT_PREFIX(is_long), tok);
+                                return -EINVAL;
+                        }
+
+                        if (val && val[0] == '-')
                                 return 0;
                         *i += 1;
                 }
@@ -179,10 +186,31 @@ static int take_val(struct argparser *ap, struct option *opt, int is_long, char 
 
 static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char *argv[])
 {
+        int r;
         char *defval = NULL;
         int has_val = 0;
         struct option *opt;
+        char tmp[2];
+        size_t len;
 
+        len = strlen(tok);
+
+        /* check OP_CONCAT flag */
+        tmp[0] = tok[0];
+        tmp[1] = '\0';
+        opt = lookup_short_str(ap, tmp);
+        if (opt != NULL && (opt->flags & OP_CONCAT)) {
+                if (len > 1)
+                        defval = tok + 1;
+
+                r = take_val(ap, opt, SHORT, tmp, defval, i, argv);
+                if (r < 0)
+                        return r;
+
+                return 0;
+        }
+
+        /* check equal sign */
         char *eq = strchr(tok, '=');
         if (eq) {
                 defval = eq + 1;
@@ -190,10 +218,8 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
         }
 
         opt = lookup_short_str(ap, tok);
-        if (opt != NULL) {
-                take_val(ap, opt, SHORT, tok, defval, i, argv);
-                return 0;
-        }
+        if (opt != NULL)
+                return take_val(ap, opt, SHORT, tok, defval, i, argv);
 
         if (defval) {
                 error(ap, "Unknown option: -%s", tok);
@@ -207,16 +233,24 @@ static int handle_short(struct argparser *ap, int *i, char *tok, int argc, char 
                         return -EINVAL;
                 }
 
+                if (opt->flags & OP_CONCAT) {
+                        error(ap, "Invalid option -%c cannot be in a group", tok[k]);
+                        return -EINVAL;
+                }
+
                 if (has_val) {
                         error(ap, "Option does not accept a value: -%c", tok[k]);
                         return -EINVAL;
                 }
 
-                char tmp[2];
                 tmp[0] = tok[k];
                 tmp[1] = '\0';
 
-                if (take_val(ap, opt, SHORT, tmp, NULL, i, argv) > 0)
+                r = take_val(ap, opt, SHORT, tmp, NULL, i, argv);
+                if (r < 0)
+                        return r;
+
+                if (r > 0)
                         has_val = 1;
         }
 
@@ -241,9 +275,7 @@ static int handle_long(struct argparser *ap, int *i, char *tok, int argc, char *
                 return -EINVAL;
         }
 
-        take_val(ap, opt, LONG, tok, defval, i, argv);
-
-        return 0;
+        return take_val(ap, opt, LONG, tok, defval, i, argv);
 }
 
 struct argparser *argparser_create(void)
@@ -273,17 +305,33 @@ void argparser_free(struct argparser *ap)
         free(ap);
 }
 
-int argparser_add0(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, const char *tips)
+int argparser_add0(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   const char *tips,
+                   uint32_t flags)
 {
-        return argparser_addn(ap, pp_option, shortopt, longopt, 0, tips);
+        return argparser_addn(ap, pp_option, shortopt, longopt, 0, tips, flags);
 }
 
-int argparser_add1(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, const char *tips)
+int argparser_add1(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   const char *tips,
+                   uint32_t flags)
 {
-        return argparser_addn(ap, pp_option, shortopt, longopt, 1, tips);
+        return argparser_addn(ap, pp_option, shortopt, longopt, 1, tips, flags);
 }
 
-int argparser_addn(struct argparser *ap, struct option **pp_option, const char *shortopt, const char *longopt, int max, const char *tips)
+int argparser_addn(struct argparser *ap,
+                   struct option **pp_option,
+                   const char *shortopt,
+                   const char *longopt,
+                   int max,
+                   const char *tips,
+                   uint32_t flags)
 {
         int r;
         struct option *opt;
@@ -298,6 +346,7 @@ int argparser_addn(struct argparser *ap, struct option **pp_option, const char *
         opt->longopt = longopt;
         opt->max = max;
         opt->tips = tips;
+        opt->flags = flags;
         opt->_refs = pp_option;
 
         r = add_option(ap, opt);

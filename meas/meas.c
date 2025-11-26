@@ -25,27 +25,21 @@ int main(int argc, char **argv)
 {
         struct option *help;
         struct option *std;
-        struct option *a, *b, *c, *d;
+        struct option *O;
 
         struct argparser *ap = argparser_create();
 
-        argparser_add0(ap, &help, "h", "help", "Print this program help");
-        argparser_add1(ap, &std, "std", "standard", "Uses the standard");
-        argparser_add0(ap, &a, "a", "aa", "a");
-        argparser_add0(ap, &b, "b", "bb", "ab");
-        argparser_add0(ap, &c, "c", "cc", "abc");
-        argparser_add1(ap, &d, "d", "dd", "abcd");
+        argparser_add0(ap, &help, "h", "help", "Print this program help", OP_NULL);
+        argparser_add1(ap, &std, "std", "standard", "Uses the standard", OP_NULL);
+        argparser_add1(ap, &O, "O", "optimize", "Optimize level", OP_CONCAT);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));
                 exit(1);
         }
 
-        if (std)
-                printf("std: %s\n", std->sval);
-
-        if (d)
-                printf("d: %s\n", d->sval);
+        if (O)
+                printf("Optimize: %s\n", O->sval);
 
         argparser_free(ap);
 
