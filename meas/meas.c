@@ -24,13 +24,7 @@ static size_t strlen_utf8(const char *str)
         return len;
 }
 
-static void version_and_exit(void)
-{
-        printf("meas version: %s\n", MEAS_VERSION);
-        exit(0);
-}
-
-static void help_and_exit(void)
+static void run_help(void)
 {
         printf(
             "Usage: meas [OPTIONS]\n"
@@ -43,7 +37,13 @@ static void help_and_exit(void)
         exit(0);
 }
 
-static int strlen_and_exit(int is_unicode, const char *str)
+static void run_version(void)
+{
+        printf("meas version: %s\n", MEAS_VERSION);
+        exit(0);
+}
+
+static int run_strlen(int is_unicode, const char *str)
 {
         printf("%zu\n", is_unicode ? strlen_utf8(str) : strlen(str));
         return 0;
@@ -75,17 +75,17 @@ int main(int argc, char **argv)
         }
 
         if (opt_help)
-                help_and_exit();
+                run_help();
 
         if (opt_version)
-                version_and_exit();
+                run_version();
 
         if (opt_str || argparser_count(ap) > 0) {
                 if (!opt_str) {
                         /* Default execute get unicode string length */
-                        strlen_and_exit(1, argparser_val(ap, 0));
+                        run_strlen(1, argparser_val(ap, 0));
                 } else {
-                        strlen_and_exit(opt_uni != NULL, opt_str->sval);
+                        run_strlen(opt_uni != NULL, opt_str->sval);
                 }
         }
 

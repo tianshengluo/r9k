@@ -13,7 +13,7 @@
 #include <fx/typedefs.h>
 
 /* --flushdns */
-static int flush_dns(void)
+static int run_flush(void)
 {
         int r;
 
@@ -33,27 +33,25 @@ static int flush_dns(void)
         else
                 printf("Failed to flush DNS cache.\n");
 
-        return r;
+        exit(0);
 }
 
-static int show_dns()
+static int run_dns(void)
 {
         struct __res_state res;
 
-        if (res_ninit(&res) != 0) {
-                perror("res_ninit failed");
-                return 1;
-        }
+        if (res_ninit(&res) != 0)
+                die("res_ninit failed");
 
         for (int i = 0; i < res.nscount; i++)
                 printf("%s\n", inet_ntoa(res.nsaddr_list[i].sin_addr));
 
         res_nclose(&res);
 
-        return 0;
+        exit(0);
 }
 
-static int show_resolv_conf()
+static void run_resolv(void)
 {
         char buf[4096];
         FILE *fp;
@@ -61,15 +59,14 @@ static int show_resolv_conf()
         fp = fopen("/etc/resolv.conf", "r");
         if (!fp) {
                 perror("cannot open /etc/resolv.conf");
-                return 1;
+                exit(1);
         }
 
         while (fgets(buf, sizeof(buf), fp))
                 fputs(buf, stdout);
 
         fclose(fp);
-
-        return 0;
+        exit(0);
 }
 
 int main(int argc, char **argv)
@@ -94,13 +91,13 @@ int main(int argc, char **argv)
         }
 
         if (opt_dns)
-                return show_dns();
+                run_dns();
 
         if (opt_resolv)
-                return show_resolv_conf();
+                run_resolv();
 
         if (opt_flush_dns)
-                return flush_dns();
+                run_flush();
 
         return 0;
 }
