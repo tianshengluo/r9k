@@ -121,7 +121,7 @@ static struct option *lookup_short_char(struct argparser *ap, const char shortop
 
         for (int i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (shortopt == opt->shortopt[0])
+                if (opt->shortopt && shortopt == opt->shortopt[0])
                         return opt;
         }
 
@@ -134,7 +134,7 @@ static struct option *lookup_short_str(struct argparser *ap, const char *shortop
 
         for (int i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (strcmp(shortopt, opt->shortopt) == 0)
+                if (opt->shortopt && strcmp(shortopt, opt->shortopt) == 0)
                         return opt;
         }
 
@@ -147,7 +147,7 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
 
         for (int i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (opt->longopt != NULL && strcmp(longopt, opt->longopt) == 0)
+                if (opt->longopt && strcmp(longopt, opt->longopt) == 0)
                         return opt;
         }
 

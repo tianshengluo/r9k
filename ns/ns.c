@@ -48,7 +48,7 @@ int main(int argc, char **argv)
                 return -1;
 
         argparser_add0(ap, &dns, "dns", NULL, "show resolv DNS address and exit", OP_NULL);
-        argparser_add0(ap, &resolv, "resolv", NULL, "show resolv.conf and exit", OP_NULL);
+        argparser_add0(ap, &resolv, NULL, "resolv", "show resolv.conf and exit", OP_NULL);
 
         if (argparser_run(ap, argc, argv) != 0) {
                 fprintf(stderr, "%s\n", argparser_error(ap));
