@@ -147,7 +147,7 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
 
         for (int i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (strcmp(longopt, opt->longopt) == 0)
+                if (opt->longopt != NULL && strcmp(longopt, opt->longopt) == 0)
                         return opt;
         }
 
