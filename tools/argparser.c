@@ -343,13 +343,13 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
         return r < 0 ? r : 0;
 }
 
-int __bulitin_acb_help(struct argparser *ap, struct option *opt)
+int __argparser_acb_help(struct argparser *ap, struct option *opt)
 {
         printf("%s\n", argparser_help(ap));
         exit(0);
 }
 
-int __bulitin_acb_version(struct argparser *ap, struct option *opt)
+int __argparser_acb_version(struct argparser *ap, struct option *opt)
 {
         printf("%s %s\n", ap->name, ap->version);
         exit(0);
