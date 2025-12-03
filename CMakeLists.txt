@@ -4,6 +4,6 @@ project(r9k C)
 set(CMAKE_C_STANDARD 17)
 
 add_subdirectory(tools)
-add_subdirectory(meas)
+add_subdirectory(wdc)
 add_subdirectory(ns)
 add_subdirectory(clip)
