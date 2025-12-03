@@ -52,8 +52,10 @@ int main(int argc, char **argv)
                 exit(1);
         }
 
-        write_to_clip(readin());
+        char *buf = readin();
+        write_to_clip(buf);
 
+        free(buf);
         argparser_free(ap);
 
         return 0;

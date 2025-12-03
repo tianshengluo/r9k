@@ -8,23 +8,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define readin() __fp_readall(stdin)
+
 static char *__fp_readall(FILE *fp)
 {
-        size_t size;
-        char *buf;
+        char *buf = NULL;
+        char *tmp;
+        size_t len = 0;
+        size_t cap = 0;
+        char chunk[4096];
+        size_t n;
 
-        fseek(fp, 0, SEEK_END);
-        size = ftell(fp);
-        rewind(fp);
-
-        buf = malloc(size + 1);
-        if (!buf) {
-                fclose(fp);
-                return NULL;
+        while ((n = fread(chunk, 1, sizeof(chunk), fp)) > 0) {
+                if (len + n + 1 > cap) {
+                        cap = cap ? cap + (cap >> 1) : sizeof(chunk) * 2;
+                        if (cap < len + n + 1)
+                                cap = len + n + 1;
+                        
+                        tmp = realloc(buf, cap);
+                        if (!tmp) {
+                                if (buf)
+                                        free(buf);
+                                return NULL;
+                        }
+                        buf = tmp;
+                }
+                memcpy(buf + len, chunk, n);
+                len += n;
         }
 
-        fread(buf, 1, size, fp);
-        buf[size] = '\0';
+        if (!buf) {
+                buf = malloc(1);
+                if (!buf)
+                        return NULL;
+        }
+
+        buf[len] = '\0';
 
         return buf;
 }
@@ -42,18 +61,6 @@ static char *readfile(const char *path)
         fclose(fp);
 
         return buf;
-}
-
-static char *readin()
-{
-        static char *stdin_buf = NULL;
-
-        if (stdin_buf)
-                return stdin_buf;
-
-        stdin_buf = __fp_readall(stdin);
-
-        return stdin_buf;
 }
 
 #endif /* IO_UTILS_H_ */

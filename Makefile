@@ -9,23 +9,23 @@ OBJDIR := $(BUILDDIR)/objs
 TOOLS_DIR := tools
 MEAS_DIR := meas
 NS_DIR := ns
-CLIP_DIR := clip
+COPY_DIR := copy
 
 TOOLS_SRCS := $(wildcard $(TOOLS_DIR)/*.c)
 MEAS_SRCS := $(wildcard $(MEAS_DIR)/*.c)
 NS_SRCS := $(wildcard $(NS_DIR)/*.c)
-CLIP_SRCS := $(wildcard $(CLIP_DIR)/*.c)
+COPY_SRCS := $(wildcard $(COPY_DIR)/*.c)
 
 TOOLS_OBJS := $(TOOLS_SRCS:$(TOOLS_DIR)/%.c=$(OBJDIR)/tools/%.o)
 MEAS_OBJS := $(MEAS_SRCS:$(MEAS_DIR)/%.c=$(OBJDIR)/meas/%.o)
 NS_OBJS := $(NS_SRCS:$(NS_DIR)/%.c=$(OBJDIR)/ns/%.o)
-CLIP_OBJS := $(CLIP_SRCS:$(CLIP_DIR)/%.c=$(OBJDIR)/clip/%.o)
+COPY_OBJS := $(COPY_SRCS:$(COPY_DIR)/%.c=$(OBJDIR)/copy/%.o)
 
 MEAS_BIN := $(BUILDDIR)/meas
 NS_BIN := $(BUILDDIR)/ns
-CLIP_BIN := $(BUILDDIR)/clip
+COPY_BIN := $(BUILDDIR)/copy
 
-TARGETS := $(MEAS_BIN) $(NS_BIN) $(CLIP_BIN)
+TARGETS := $(MEAS_BIN) $(NS_BIN) $(COPY_BIN)
 
 all:$(TARGETS)
 
@@ -35,7 +35,7 @@ $(MEAS_BIN): $(MEAS_OBJS) $(TOOLS_OBJS)
 $(NS_BIN): $(NS_OBJS) $(TOOLS_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDE) $^ -o $@ -lresolv
 
-$(CLIP_BIN): $(CLIP_OBJS) $(TOOLS_OBJS)
+$(COPY_BIN): $(COPY_OBJS) $(TOOLS_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDE) $^ -o $@
 
 $(OBJDIR)/tools/%.o: $(TOOLS_DIR)/%.c
@@ -50,7 +50,7 @@ $(OBJDIR)/ns/%.o: $(NS_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-$(OBJDIR)/clip/%.o: $(CLIP_DIR)/%.c
+$(OBJDIR)/copy/%.o: $(COPY_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
