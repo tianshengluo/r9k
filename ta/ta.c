@@ -12,52 +12,11 @@
 #include <r9k/typedefs.h>
 #include <r9k/ioutils.h>
 
+#include "wordc.h"
+
 #define TA_VERSION "1.0"
 
-static size_t utf8len(const char *str)
-{
-        size_t len = 0;
-
-        while (*str) {
-                unsigned char c = (unsigned char) *str;
-                str++;
-                if ((c & 0xC0) != 0x80)
-                        len++;
-        }
-
-        return len;
-}
-
-static size_t length(const char *str, bool _char)
-{
-        return _char ? utf8len(str) : strlen(str);
-}
-
-static size_t lines(const char *str)
-{
-        size_t count = 0;
-
-        while (*str) {
-                if (*str == '\n')
-                        count++;
-                str++;
-        }
-
-        return count;
-}
-
-static size_t ta(struct argparser *ap, const char *str)
-{
-        if (argparser_find(ap, "l"))
-                return lines(str);
-
-        if (argparser_find(ap, "c"))
-                return length(str, true);
-
-        return length(str, false);
-}
-
-static const char *strval(struct argparser *ap, bool *p_need_free)
+static const char *strread(struct argparser *ap, bool *p_need_free)
 {
         const char *buf = NULL;
 
@@ -99,13 +58,21 @@ int main(int argc, char **argv)
                 return -1;
         }
 
-        if ((buf = strval(ap, &need_free)) == NULL) {
+        if ((buf = strread(ap, &need_free)) == NULL) {
                 fprintf(stderr, "%s\n", strerror(errno));
                 return -1;
         }
 
-        printf("%zu\n", ta(ap, buf));
+        /* calculate lines */
+        if (l) {
+                printf("%zu\n", linec(buf));
+                goto end;
+        }
 
+        /* default calculates word count */
+        printf("%zu\n", wordc(buf, c != NULL));
+
+end:
         if (need_free)
                 free((void *) buf);
 
