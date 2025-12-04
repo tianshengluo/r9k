@@ -1,5 +1,5 @@
-# ns/Makefile
-MODULE      := ns
+# ta/Makefile
+MODULE      := ta
 SRCS        := $(shell find ./ -type f -name '*.c' | sed 's|^\./||')
 OBJDIR      := $(BUILDDIR)/obj/$(MODULE)
 OBJS        := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))

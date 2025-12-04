@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <argparser.h>
 #include <string.h>
-#include <r9k/typedefs.h>
 #include <errno.h>
-
+//r9k
+#include <r9k/typedefs.h>
 #include <r9k/ioutils.h>
 
-#define WDC_VERSION "1.0"
+#define TA_VERSION "1.0"
 
 static size_t utf8len(const char *str)
 {
@@ -46,7 +46,7 @@ static size_t lines(const char *str)
         return count;
 }
 
-static size_t wdc(struct argparser *ap, const char *str)
+static size_t ta(struct argparser *ap, const char *str)
 {
         if (argparser_find(ap, "l"))
                 return lines(str);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
         const char *buf;
         bool need_free = false;
 
-        ap = argparser_create("wdc", WDC_VERSION);
+        ap = argparser_create("ta", TA_VERSION);
         if (!ap) {
                 fprintf(stderr, "Failed to create argparser\n");
                 exit(1);
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
                 return -1;
         }
 
-        printf("%zu\n", wdc(ap, buf));
+        printf("%zu\n", ta(ap, buf));
 
         if (need_free)
                 free((void *) buf);

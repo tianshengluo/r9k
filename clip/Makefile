@@ -1,5 +1,5 @@
-# wdc/Makefile
-MODULE      := wdc
+# clip/Makefile
+MODULE      := clip
 SRCS        := $(shell find ./ -type f -name '*.c' | sed 's|^\./||')
 OBJDIR      := $(BUILDDIR)/obj/$(MODULE)
 OBJS        := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
