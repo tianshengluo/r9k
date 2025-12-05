@@ -14,7 +14,7 @@
 
 #include "wordc.h"
 
-#define TA_VERSION "1.0"
+#define COUNT_VERSION "1.0"
 
 static const char *strread(struct argparser *ap, struct option *f, bool *p_need_free)
 {
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         const char *buf;
         bool need_free = false;
 
-        ap = argparser_create("ta", TA_VERSION);
+        ap = argparser_create("count", COUNT_VERSION);
         if (!ap) {
                 fprintf(stderr, "Failed to create argparser\n");
                 exit(1);
