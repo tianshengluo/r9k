@@ -7,10 +7,11 @@
 #include <arpa/inet.h>
 //r9k
 #include <r9k/argparser.h>
+#include <r9k/attributes.h>
 
 #define NS_VERSION "1.0"
 
-static int on_dns(struct argparser *ap, struct option *opt)
+static int on_dns(__maybe_unused struct argparser *ap, __maybe_unused struct option *opt)
 {
         char buf[4096];
         FILE *fp;
@@ -28,7 +29,7 @@ static int on_dns(struct argparser *ap, struct option *opt)
         exit(0);
 }
 
-static int on_flush_dns(struct argparser *ap, struct option *opt)
+static int on_flush_dns(__maybe_unused struct argparser *ap, __maybe_unused struct option *opt)
 {
         int ret = 0;
 

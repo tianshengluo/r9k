@@ -1,4 +1,7 @@
-/* typedefs.h: Created by Ekko on 2025/11/18 */
+/*
+* SPDX-License-Identifier: MIT
+ * Copyright (c) 2025 viakko
+ */
 #ifndef TYPEDEFS_H_
 #define TYPEDEFS_H_
 

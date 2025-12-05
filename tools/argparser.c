@@ -24,6 +24,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+//r9k
+#include <r9k/attributes.h>
 
 #define MAX_UNIT 256
 #define MAX_VAL  32
@@ -164,7 +166,7 @@ static struct option *lookup_short_char(struct argparser *ap, const char shortop
 {
         struct option *opt;
 
-        for (int i = 0; i < ap->nopt; i++) {
+        for (uint32_t i = 0; i < ap->nopt;) {
                 opt = ap->opts[i];
                 if (opt->shortopt) {
                         if (strlen(opt->shortopt) == 1 && shortopt == opt->shortopt[0])
@@ -179,7 +181,7 @@ static struct option *lookup_short_str(struct argparser *ap, const char *shortop
 {
         struct option *opt;
 
-        for (int i = 0; i < ap->nopt; i++) {
+        for (uint32_t i = 0; i < ap->nopt;) {
                 opt = ap->opts[i];
                 if (opt->shortopt && strcmp(shortopt, opt->shortopt) == 0)
                         return opt;
@@ -192,7 +194,7 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
 {
         struct option *opt;
 
-        for (int i = 0; i < ap->nopt; i++) {
+        for (uint32_t i = 0; i < ap->nopt;) {
                 opt = ap->opts[i];
                 if (opt->longopt && strcmp(longopt, opt->longopt) == 0)
                         return opt;
@@ -343,13 +345,13 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
         return r < 0 ? r : 0;
 }
 
-int __argparser_acb_help(struct argparser *ap, struct option *opt)
+int __argparser_acb_help(struct argparser *ap, __maybe_unused struct option *opt)
 {
         printf("%s", argparser_help(ap));
         exit(0);
 }
 
-int __argparser_acb_version(struct argparser *ap, struct option *opt)
+int __argparser_acb_version(struct argparser *ap, __maybe_unused struct option *opt)
 {
         printf("%s %s\n", ap->name, ap->version);
         exit(0);
@@ -447,7 +449,7 @@ static int execacb(struct argparser *ap)
         int r;
         struct option *opt;
 
-        for (int i = 0; i < ap->nopt; i++) {
+        for (uint32_t i = 0; i < ap->nopt;) {
                 opt = ap->opts[i];
                 if (*opt->_refs != NULL && opt->_cb != NULL) {
                         r = opt->_cb(ap, opt);
@@ -553,7 +555,7 @@ const char *argparser_help(struct argparser *ap)
 
         n += snprintf(ap->help + n, sizeof(ap->help) - n, "Options:\n");
 
-        for (int i = 0; i < ap->nopt; i++) {
+        for (uint32_t i = 0; i < ap->nopt;) {
                 opt = ap->opts[i];
 
                 if (opt->shortopt) {
