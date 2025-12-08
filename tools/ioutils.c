@@ -6,9 +6,8 @@
 //std
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-static char *__fp_readall(FILE *fp)
+char *readall(FILE *fp)
 {
         char *buf = NULL;
         char *tmp;
@@ -52,7 +51,7 @@ char *readfile(const char *path)
         if (!fp)
                 return NULL;
 
-        buf = __fp_readall(fp);
+        buf = readall(fp);
         fclose(fp);
 
         return buf;
@@ -60,5 +59,5 @@ char *readfile(const char *path)
 
 char *readin()
 {
-        return __fp_readall(stdin);
+        return readall(stdin);
 }

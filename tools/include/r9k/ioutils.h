@@ -10,6 +10,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
+char *readall(FILE *fp);
 char *readfile(const char *path);
 char *readin();
 
