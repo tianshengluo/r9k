@@ -9,12 +9,17 @@
  * and single-character options can be grouped.
  *
  * The rules:
- *  - If string "abc" not found in short option, it will be split into single-character
- *    options for short option matching.
- *  - Supports argument specified with either spaces or equal signs.
- *  - When arguments are specified using spaces, multiple values are supported.
- *  - If a value starts with '-', you need to use equal sign accept the value.
- *  - Short option groups not support using the equal sign to accept value.
+ *  - If option like "-abc" not found in short option of definitions, it will be
+ *    split into single-character options for short option matching.
+ *  - Short option value syntax support:
+ *    Type                    | Space   | Equals  | Concatenated
+ *    -----------------------|---------|----------|-------------
+ *    Single-char (-O)       | -O 123  | -O=123   | -O123 (opt_concat)
+ *    Multi-char str (-abc)  | -abc 123| -abc=123 | ✗
+ *    Option group (-xyz)    | -xyz 123| ✗        | ✗
+ *  - Supports multiple values via space-separation or repeated options.
+ *  - Support a single-character short option to group with other single-character
+ *    short option.
  */
 #include <r9k/argparser.h>
 #include <stdlib.h>
@@ -482,6 +487,10 @@ int argparser_addn(struct argparser *ap,
                 return -EINVAL;
         }
 
+        /* Initialize the user option pointer to NULL,
+         * If the user provides this option in command line,
+         * the pointer will be updated to point to the actual option object.
+         * WARNING: This pointer becomes invalid after argparser_free(). */
         *result_slot = NULL;
 
         opt = calloc(1, sizeof(*opt));
