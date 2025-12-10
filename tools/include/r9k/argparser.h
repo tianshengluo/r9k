@@ -28,8 +28,8 @@
 #define opt_concat  (1 << 1) /* -O1 -O2 */
 #define opt_nogroup (1 << 2) /* not allow group */
 
-#define acb_help __argparser_acb_help
-#define acb_version __argparser_acb_version
+#define acb_help argparser_acb_help
+#define acb_version argparser_acb_version
 
 struct argparser;
 struct option;
@@ -54,8 +54,8 @@ struct option
         PFN_argparser_callback _cb;
 };
 
-int __argparser_acb_help(struct argparser *ap, struct option *opt);
-int __argparser_acb_version(struct argparser *ap, struct option *opt);
+int argparser_acb_help(struct argparser *ap, struct option *opt);
+int argparser_acb_version(struct argparser *ap, struct option *opt);
 
 /* If a result doesn't equal to 0 that mean error. */
 struct argparser *argparser_create(const char *name, const char *version);

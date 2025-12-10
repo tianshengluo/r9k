@@ -24,9 +24,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <r9k/string.h>
-#include <r9k/typedefs.h>
-#include <r9k/attributes.h>
+#include <string.h>
 
 #define MIN_CAP 8 /* default */
 #define MAX_MSG 4096
@@ -212,7 +210,7 @@ static struct option *lookup_short_str(struct argparser *ap, const char *shortop
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (opt->shortopt && streq(shortopt, opt->shortopt))
+                if (opt->shortopt && strcmp(shortopt, opt->shortopt) == 0)
                         return opt;
         }
 
@@ -225,14 +223,14 @@ static struct option *lookup_long(struct argparser *ap, const char *longopt)
 
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 opt = ap->opts[i];
-                if (opt->longopt && streq(longopt, opt->longopt))
+                if (opt->longopt && strcmp(longopt, opt->longopt) == 0)
                         return opt;
         }
 
         return NULL;
 }
 
-static int __handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
+static int handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
 {
         char *defval = NULL;
         struct option *opt;
@@ -258,7 +256,7 @@ static int __handle_short_concat(struct argparser *ap, char *tok, int *i, char *
         return 0;
 }
 
-static int __handle_short_assign(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
+static int handle_short_assign(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
 {
         char *eqval = NULL;
         struct option *opt;
@@ -284,7 +282,7 @@ static int __handle_short_assign(struct argparser *ap, char *tok, int *i, char *
         return 0;
 }
 
-static int __handle_short_group(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
+static int handle_short_group(struct argparser *ap, char *tok, int *i, char *argv[]) // NOLINT(*-reserved-identifier)
 {
         int has_val = 0;
         char has_val_opt = 0;
@@ -334,7 +332,7 @@ static int handle_short(struct argparser *ap, int *i, char *tok, char *argv[])
         int r;
 
         /* check opt_concat flag */
-        r = __handle_short_concat(ap, tok, i, argv);
+        r = handle_short_concat(ap, tok, i, argv);
         if (r > 0)
                 return 0;
 
@@ -342,14 +340,14 @@ static int handle_short(struct argparser *ap, int *i, char *tok, char *argv[])
                 return r;
         
         /* check equal sign */
-        r = __handle_short_assign(ap, tok, i, argv);
+        r = handle_short_assign(ap, tok, i, argv);
         if (r > 0)
                 return 0;
 
         if (r < 0)
                 return r;
         
-        return __handle_short_group(ap, tok, i, argv);
+        return handle_short_group(ap, tok, i, argv);
 }
 
 static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
@@ -374,14 +372,16 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
         return r < 0 ? r : 0;
 }
 
-int __argparser_acb_help(struct argparser *ap, __maybe_unused struct option *opt)
+int argparser_acb_help(struct argparser *ap, struct option *opt)
 {
+        (void) opt;
         printf("%s", argparser_help(ap));
         exit(0);
 }
 
-int __argparser_acb_version(struct argparser *ap, __maybe_unused struct option *opt)
+int argparser_acb_version(struct argparser *ap, struct option *opt)
 {
+        (void) opt;
         printf("%s %s\n", ap->name, ap->version);
         exit(0);
 }
@@ -528,7 +528,7 @@ int argparser_run(struct argparser *ap, int argc, char *argv[])
 {
         int r;
         char *tok;
-        bool terminator = false;
+        int terminator = 0;
 
         if (!ap)
                 return -EFAULT;
@@ -537,7 +537,7 @@ int argparser_run(struct argparser *ap, int argc, char *argv[])
                 tok = argv[i];
 
                 if (tok[0] == '-' && tok[1] == '-' && tok[2] == '\0') {
-                        terminator = true;
+                        terminator = 1;
                         continue;
                 }
 
