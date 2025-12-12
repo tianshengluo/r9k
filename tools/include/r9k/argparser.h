@@ -55,14 +55,14 @@
 #define OPT_CONCAT   (1 << 1) /* -O1 -O2 */
 #define OPT_NOGRP    (1 << 2) /* not allow a group */
 
-#define ACB_HELP argparser_acb_help
-#define ACB_VERSION argparser_acb_version
+#define ACB_EXIT_HELP _argparser_builtin_callback_help
+#define ACB_EXIT_VERSION _argparser_builtin_callback_version
 
 struct argparser;
 struct option;
 
 /* return zero means success otherwith error. */
-typedef int (*PFN_argparser_callback)(struct argparser *, struct option *);
+typedef int (*argparser_callback_t)(struct argparser *, struct option *);
 
 struct option
 {
@@ -74,8 +74,8 @@ struct option
         const char** vals;
 };
 
-int argparser_acb_help(struct argparser *ap, struct option *opt);
-int argparser_acb_version(struct argparser *ap, struct option *opt);
+int _argparser_builtin_callback_help(struct argparser *ap, struct option *opt);
+int _argparser_builtin_callback_version(struct argparser *ap, struct option *opt);
 
 /* If a result doesn't equal to 0 that mean error. */
 struct argparser *argparser_create(const char *name, const char *version);
@@ -90,7 +90,7 @@ int argparser_add0(struct argparser *ap,
                    const char *shortopt,
                    const char *longopt,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags); /* no argument */
 
 int argparser_add1(struct argparser *ap,
@@ -98,7 +98,7 @@ int argparser_add1(struct argparser *ap,
                    const char *shortopt,
                    const char *longopt,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags); /* 1 argument */
 
 int argparser_addn(struct argparser *ap,
@@ -107,7 +107,7 @@ int argparser_addn(struct argparser *ap,
                    const char *longopt,
                    int max,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags); /* n argument */
 
 /* Parsing arguments */

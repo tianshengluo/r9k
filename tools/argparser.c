@@ -69,7 +69,7 @@ typedef struct
         /* built-in */
         uint32_t _valcap;
         struct option** _refs; /* if an input option using _refs writes back the pointer. */
-        PFN_argparser_callback _cb;
+        argparser_callback_t _cb;
         uint32_t _maxval;
         uint32_t _flags;
 } internal_option_t;
@@ -423,14 +423,14 @@ static int handle_long(struct argparser *ap, int *i, char *tok, char *argv[])
         return r < 0 ? r : 0;
 }
 
-int argparser_acb_help(struct argparser *ap, struct option *opt)
+int _argparser_builtin_callback_help(struct argparser *ap, struct option *opt)
 {
         (void) opt;
         printf("%s", argparser_help(ap));
         exit(0);
 }
 
-int argparser_acb_version(struct argparser *ap, struct option *opt)
+int _argparser_builtin_callback_version(struct argparser *ap, struct option *opt)
 {
         (void) opt;
         printf("%s %s\n", ap->name, ap->version);
@@ -493,7 +493,7 @@ int argparser_add0(struct argparser *ap,
                    const char *shortopt,
                    const char *longopt,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags)
 {
         return argparser_addn(ap, result_slot, shortopt, longopt, 0, tips, cb, flags);
@@ -504,7 +504,7 @@ int argparser_add1(struct argparser *ap,
                    const char *shortopt,
                    const char *longopt,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags)
 {
         return argparser_addn(ap, result_slot, shortopt, longopt, 1, tips, cb, flags);
@@ -516,7 +516,7 @@ int argparser_addn(struct argparser *ap,
                    const char *longopt,
                    int max,
                    const char *tips,
-                   PFN_argparser_callback cb,
+                   argparser_callback_t cb,
                    uint32_t flags)
 {
         int r;

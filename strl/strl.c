@@ -126,8 +126,8 @@ int main(int argc, char* argv[])
         if (!ap)
                 die("argparser initialize failed");
 
-        argparser_add0(ap, &help, "h", "help", "show this help message.", ACB_HELP, 0);
-        argparser_add0(ap, &version, "version", NULL, "show current version.", ACB_VERSION, 0);
+        argparser_add0(ap, &help, "h", "help", "show this help message.", ACB_EXIT_HELP, 0);
+        argparser_add0(ap, &version, "version", NULL, "show current version.", ACB_EXIT_VERSION, 0);
         argparser_add0(ap, &ischr, "c", NULL, "count characters by unicode.", NULL, 0);
         argparser_addn(ap, &files, "f", NULL, 128, "count files.", NULL, OPT_REQUIRED);
 
