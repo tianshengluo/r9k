@@ -18,6 +18,9 @@
 
 #define OPT_PREFIX(is_long) (is_long ? "--" : "-")
 
+#define WARNING(fmt, ...) \
+        fprintf(stderr, "WARNING: " fmt "", ##__VA_ARGS__)
+
 struct option_hdr
 {
         struct option pub;
@@ -536,12 +539,12 @@ int argparser_addn(struct argparser *ap,
 
         /* check exists */
         if (longopt && lookup_long(ap, longopt)) {
-                error(ap, "long option --%s already exists", longopt);
+                WARNING("long option --%s already exists\n", longopt);
                 return -EINVAL;
         }
 
         if (shortopt && lookup_short_str(ap, shortopt)) {
-                error(ap, "short option -%s already exists", shortopt);
+                WARNING("short option -%s already exists\n", shortopt);
                 return -EINVAL;
         }
 
@@ -601,6 +604,12 @@ void _argparser_builtin_mutual_exclude(struct argparser *ap, ...)
                 op_hdr = lookup_slot(ap, slot);
                 if (!op_hdr)
                         continue;
+
+                if (op_hdr->_mulid != 0)
+                        WARNING("option %s%s already in other mutual exclude group!\n",
+                                op_hdr->pub.shortopt ? "-" : "--",
+                                op_hdr->pub.shortopt ? op_hdr->pub.shortopt : op_hdr->pub.longopt);
+
                 op_hdr->_mulid = mulid;
         }
         va_end(va);

@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
         argparser_add0(ap, &opt_l, "l", NULL, "count line.", NULL, 0);
         argparser_addn(ap, &opt_f, "f", NULL, 128, "count files.", NULL, O_REQUIRED);
 
-        argparser_mutual_exclude(ap, &opt_c, &opt_l);
+        argparser_mutual_exclude(ap, &opt_c, &opt_l, &opt_c);
 
         if (argparser_run(ap, argc, argv) != 0)
                 die("%s\n", argparser_error(ap));
