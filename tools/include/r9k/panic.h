@@ -2,18 +2,22 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 viakko
  */
-#ifndef _PANIC_H_
-#define _PANIC_H_
+#ifndef PANIC_H_
+#define PANIC_H_
 
-#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-void vpanic(const char *fmt, va_list va);
-void panic(const char *fmt, ...);
-
-#define PANIC_IF(cond, fmt, ...)        \
-        do {                            \
-                if (cond)               \
-                        panic(fmt, ##__VA_ARGS__); \
+#define PANIC(fmt, ...)                                 \
+        do {                                            \
+                fprintf(stderr, fmt, ##__VA_ARGS__);    \
+                exit(EXIT_FAILURE);                     \
         } while(0)
 
-#endif /* _PANIC_H_ */
+#define PANIC_IF(cond, fmt, ...)                        \
+        do {                                            \
+                if (cond)                               \
+                        PANIC(fmt, ##__VA_ARGS__);      \
+        } while(0)
+
+#endif /* PANIC_H_ */

@@ -138,8 +138,7 @@ int main(int argc, char* argv[])
         struct option *m, *l, *f;
 
         ap = argparser_create("strc", "1.0.0");
-        if (!ap)
-                panic("argparser initialize failed");
+        PANIC_IF(!ap, "argparser initialize failed");
 
         argparser_add0(ap, &m, "m", NULL, "count characters by unicode.", NULL, 0);
         argparser_add0(ap, &l, "l", NULL, "count line.", NULL, 0);
@@ -148,7 +147,7 @@ int main(int argc, char* argv[])
         argparser_mutual_exclude(ap, &m, &l);
 
         if (argparser_run(ap, argc, argv) != 0)
-                panic("%s\n", argparser_error(ap));
+                PANIC("%s\n", argparser_error(ap));
 
         if (f || argparser_count(ap) == 0) {
                 process_stream(f, m, l);
