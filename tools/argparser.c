@@ -136,8 +136,7 @@ static void _error(struct argparser *ap, const char *fmt, ...)
         va_list va;
         size_t n;
 
-        n = snprintf(ap->error, sizeof(ap->error),
-                     "%s: ", ap->name ? ap->name : "(null)");
+        n = snprintf(ap->error, sizeof(ap->error), "error: ");
 
         va_start(va, fmt);
         vsnprintf(ap->error + n, sizeof(ap->error) - n, fmt, va);
@@ -711,6 +710,8 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
         char *tok = NULL;
         struct argparser *cmd = NULL;
         bool terminator = false;
+
+        /* sub command argv copy */
         int cmd_argc = 0;
         char *cmd_argv[argc];
 
@@ -735,7 +736,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
                 if (tok[1] == '-') {
                         tok += 2;
 
-                        if (cmd && !find_hdr_option(ap, tok)) {
+                        if (cmd && find_hdr_option(cmd, tok)) {
                                 cmd_argv[cmd_argc++] = argv[i];
                                 continue;
                         }
@@ -749,7 +750,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
 
                 tok++; /* skip '-' */
 
-                if (cmd && !find_hdr_option(ap, tok)) {
+                if (cmd && find_hdr_option(cmd, tok)) {
                         cmd_argv[cmd_argc++] = argv[i];
                         continue;
                 }
@@ -762,7 +763,7 @@ static int _argparser_run0(struct argparser *ap, int argc, char *argv[])
         /* if include cmd parsing for sub command. */
         if (cmd) {
                 if ((r = _argparser_run0(cmd, cmd_argc, cmd_argv)) != 0) {
-                        _error(ap, "%s", cmd->error);
+                        memcpy(ap->error, cmd->error, sizeof(ap->error));
                         return r;
                 }
                 cmd->cmd_callback(cmd);
