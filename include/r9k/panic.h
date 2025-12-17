@@ -10,8 +10,8 @@
 #include <stdarg.h>
 #include <r9k/compiler_attrs.h>
 
+__attr_printf(1, 2)
 static void _panic(const char *fmt, ...)
-        __attr_printf(1, 2)
 {
         va_list va;
         va_start(va, fmt);
