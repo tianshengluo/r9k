@@ -146,11 +146,11 @@ int main(int argc, char* argv[])
         argparser_add0(ap, &c, "c", NULL, "count bytes.", NULL, 0);
         argparser_add0(ap, &m, "m", NULL, "count UTF-8 characters", NULL, 0);
         argparser_add0(ap, &l, "l", NULL, "count line.", NULL, 0);
-        argparser_addn(ap, &f, "f", NULL, 128, "count files.", "path", NULL, O_REQUIRED);
+        argparser_addn(ap, &f, "f", NULL, "count files.", "path", 128, NULL, O_REQUIRED);
 
         argparser_mutual_exclude(ap, &c, &m, &l);
 
-        if (argparser_run(ap, argc, argv) != 0)
+        if (argparser_run(ap, argc, argv) != A_OK)
                 PANIC("%s\n", argparser_error(ap));
 
         if (f || argparser_count(ap) == 0) {

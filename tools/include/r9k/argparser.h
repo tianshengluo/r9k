@@ -56,32 +56,29 @@
 #include <stdint.h>
 
 /* option flags */
-#define O_REQUIRED     (1 << 1) /* required value */
-#define O_CONCAT       (1 << 2) /* allow arguments like: -O1 -O2 */
-#define O_NOGROUP      (1 << 3) /* not allow a group */
+#define O_REQUIRED              (1 << 1) /* required value */
+#define O_CONCAT                (1 << 2) /* allow arguments like: -O1 -O2 */
+#define O_NOGROUP               (1 << 3) /* not allow a group */
+
+#define A_OK                    -0x0000
+#define A_ERROR_REQUIRED_VAL    -0x0001
+#define A_ERROR_UNKNOWN_OPT     -0x0002
+#define A_ERROR_TOO_MANY_VAL    -0x0003
+#define A_ERROR_CONFLICT        -0x0004
+#define A_ERROR_NO_MEMORY       -0x0005
+#define A_ERROR_INVALID_GROUP   -0x0006
+#define A_ERROR_MULTI_VAL_OPTS  -0x0007
+#define A_ERROR_ALREADY_EXISTS  -0x0008
+#define A_ERROR_NULL_PARENT     -0x0009
+#define A_ERROR_CREATE_FAIL     -0x0010
+#define A_ERROR_CALLBACK_FAIL   -0x0011
+#define A_ERROR_NULL_ARGPARSER  -0x0012
+#define A_ERROR_SUBCOMMAND_CALL -0x0013
+#define A_ERROR_NO_ARG_ACCEPT   -0x0014
+#define A_ERROR_REPEATED_CALL   -0x0015
 
 #define ACB_CALLBACK_HELP _argparser_builtin_callback_help
 #define ACB_CALLBACK_VERSION _argparser_builtin_callback_version
-
-typedef enum
-{
-        AP_OK                      =  0,
-        AP_ERROR_REQUIRED_VAL      = -1,
-        AP_ERROR_UNKNOWN_OPT       = -2,
-        AP_ERROR_TOO_MANY_VAL      = -3,
-        AP_ERROR_CONFLICT          = -4,
-        AP_ERROR_NO_MEMORY         = -5,
-        AP_ERROR_INVALID_GROUP     = -6,
-        AP_ERROR_MULTI_VAL_OPTS    = -7,
-        AP_ERROR_ALREADY_EXISTS    = -8,
-        AP_ERROR_NULL_PARENT       = -9,
-        AP_ERROR_CREATE_FAIL       = -10,
-        AP_ERROR_CALLBACK_FAIL     = -11,
-        AP_ERROR_NULL_ARGPARSER    = -12,
-        AP_ERROR_SUBCOMMAND_CALL   = -13,
-        AP_ERROR_NO_ARG_ACCEPT     = -14,
-        AP_ERROR_REPEATED_CALL     = -15,
-} argparser_result;
 
 struct argparser;
 struct option;
@@ -142,9 +139,9 @@ int argparser_addn(struct argparser *ap,
                    struct option **result_slot,
                    const char *shortopt,
                    const char *longopt,
-                   int max,
                    const char *help,
                    const char *metavar,
+                   int maxval,
                    argparser_callback_t cb,
                    uint32_t flags); /* n argument */
 
