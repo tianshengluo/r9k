@@ -60,8 +60,8 @@
 #define O_CONCAT       (1 << 2) /* allow arguments like: -O1 -O2 */
 #define O_NOGROUP      (1 << 3) /* not allow a group */
 
-#define ACB_EXIT_HELP _argparser_builtin_callback_help
-#define ACB_EXIT_VERSION _argparser_builtin_callback_version
+#define ACB_CALLBACK_HELP _argparser_builtin_callback_help
+#define ACB_CALLBACK_VERSION _argparser_builtin_callback_version
 
 typedef enum
 {

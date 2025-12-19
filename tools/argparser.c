@@ -506,14 +506,14 @@ int _argparser_builtin_callback_help(struct argparser *ap, struct option *op_hdr
 {
         (void) op_hdr;
         printf("%s", argparser_help(ap));
-        exit(0);
+        return 0;
 }
 
 int _argparser_builtin_callback_version(struct argparser *ap, struct option *op_hdr)
 {
         (void) op_hdr;
         printf("%s %s\n", ap->name, ap->version);
-        exit(0);
+        return 0;
 }
 
 struct argparser *argparser_create_raw(const char *name, const char *version)
@@ -557,8 +557,8 @@ struct argparser *argparser_create(const char *name, const char *version)
         if (!ap)
                 return NULL;
 
-        argparser_add0(ap, &ap->opt_h, "h", "help", "show this help message.", ACB_EXIT_HELP, 0);
-        argparser_add0(ap, &ap->opt_v, "version", NULL, "show current version.", ACB_EXIT_VERSION, 0);
+        argparser_add0(ap, &ap->opt_h, "h", "help", "show this help message.", ACB_CALLBACK_HELP, 0);
+        argparser_add0(ap, &ap->opt_v, "version", NULL, "show current version.", ACB_CALLBACK_VERSION, 0);
 
         return ap;
 }
