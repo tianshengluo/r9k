@@ -26,7 +26,7 @@ typedef void (*fn_iterate_t)(size_t, void *);
 
 struct option_hdr
 {
-        struct option pub;
+        struct option view;
 
         /* built-in */
         size_t _short_len;
@@ -112,8 +112,8 @@ static struct option_hdr *find_hdr_option(struct argparser *ap, const char *name
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 struct option_hdr *op_hdr = ap->opts[i];
 
-                lopt = op_hdr->pub.longopt;
-                sopt = op_hdr->pub.shortopt;
+                lopt = op_hdr->view.longopt;
+                sopt = op_hdr->view.shortopt;
 
                 if (sopt) {
                         if (is_short_char && op_hdr->_short_len == 1 && sopt[0] == name[0])
@@ -206,33 +206,33 @@ static int store_option_val(struct argparser *ap,
                             char *tok,
                             const char *val)
 {
-        if (op_hdr->pub.nval > op_hdr->_maxval) {
+        if (op_hdr->view.nval > op_hdr->_maxval) {
                 _error(ap, "%s%s option value out of %d", OPT_PREFIX(is_long), tok, op_hdr->_maxval);
                 return A_ERROR_TOO_MANY_VAL;
         }
 
-        if (!op_hdr->pub.vals) {
+        if (!op_hdr->view.vals) {
                 op_hdr->_valcap = 16;
-                op_hdr->pub.nval = 0;
-                op_hdr->pub.vals = calloc(op_hdr->_valcap, sizeof(char *));
-                if (!op_hdr->pub.vals)
+                op_hdr->view.nval = 0;
+                op_hdr->view.vals = calloc(op_hdr->_valcap, sizeof(char *));
+                if (!op_hdr->view.vals)
                         return A_ERROR_NO_MEMORY;
         }
 
-        if (op_hdr->pub.nval >= op_hdr->_valcap) {
+        if (op_hdr->view.nval >= op_hdr->_valcap) {
                 const char **tmp_vals;
                 op_hdr->_valcap *= 2;
-                tmp_vals = realloc(op_hdr->pub.vals, sizeof(char *) * op_hdr->_valcap);
+                tmp_vals = realloc(op_hdr->view.vals, sizeof(char *) * op_hdr->_valcap);
                 if (!tmp_vals)
                         return A_ERROR_NO_MEMORY;
 
-                op_hdr->pub.vals = tmp_vals;
+                op_hdr->view.vals = tmp_vals;
         }
 
-        op_hdr->pub.vals[op_hdr->pub.nval++] = val;
+        op_hdr->view.vals[op_hdr->view.nval++] = val;
 
-        if (op_hdr->pub.nval == 1)
-                op_hdr->pub.sval = op_hdr->pub.vals[0];
+        if (op_hdr->view.nval == 1)
+                op_hdr->view.sval = op_hdr->view.vals[0];
 
         return 0;
 }
@@ -268,14 +268,14 @@ static int try_take_val(struct argparser *ap,
                         char *argv[])
 {
         if (op_hdr->_slot) {
-                *op_hdr->_slot = &op_hdr->pub;
+                *op_hdr->_slot = &op_hdr->view;
 
                 struct option_hdr *ent = is_mutual(ap, op_hdr);
                 if (ent) {
                        _error(ap, "%s%s conflicts with option %s%s",
                                OPT_PREFIX(is_long), tok,
-                               ent->pub.shortopt ? "-" : "--",
-                               ent->pub.shortopt ? ent->pub.shortopt : ent->pub.longopt);
+                               ent->view.shortopt ? "-" : "--",
+                               ent->view.shortopt ? ent->view.shortopt : ent->view.longopt);
                         return A_ERROR_CONFLICT;
                 }
 
@@ -299,14 +299,14 @@ static int try_take_val(struct argparser *ap,
         /* equal sign value */
         if (eqval) {
                 store_option_val(ap, op_hdr, is_long, tok, eqval);
-                return (int) op_hdr->pub.nval;
+                return (int) op_hdr->view.nval;
         }
 
-        while (op_hdr->pub.nval < op_hdr->_maxval) {
+        while (op_hdr->view.nval < op_hdr->_maxval) {
                 char *val = argv[*i + 1];
 
                 if (!val || val[0] == '-') {
-                        if ((op_hdr->_flags & O_REQUIRED) && op_hdr->pub.nval == 0) {
+                        if ((op_hdr->_flags & O_REQUIRED) && op_hdr->view.nval == 0) {
                                 _error(ap, "option %s%s missing required argument", OPT_PREFIX(is_long), tok);
                                 return A_ERROR_REQUIRED_VAL;
                         }
@@ -317,7 +317,7 @@ static int try_take_val(struct argparser *ap,
                 *i += 1;
         }
 
-        return (int) op_hdr->pub.nval;
+        return (int) op_hdr->view.nval;
 }
 
 static int handle_short_concat(struct argparser *ap, char *tok, int *i, char *argv[])
@@ -606,7 +606,7 @@ void argparser_free(struct argparser *ap)
         if (ap->opts) {
                 for (uint32_t i = 0; i < ap->nopt; i++) {
                         struct option_hdr *op_hdr = ap->opts[i];
-                        free(op_hdr->pub.vals);
+                        free(op_hdr->view.vals);
                         free(op_hdr);
                 }
                 free(ap->opts);
@@ -671,10 +671,10 @@ int argparser_addn(struct argparser *ap,
         if (!op_hdr)
                 return A_ERROR_NO_MEMORY;
 
-        op_hdr->pub.shortopt = shortopt;
-        op_hdr->pub.longopt = longopt;
-        op_hdr->pub.help = help;
-        op_hdr->pub.metavar = metavar;
+        op_hdr->view.shortopt = shortopt;
+        op_hdr->view.longopt = longopt;
+        op_hdr->view.help = help;
+        op_hdr->view.metavar = metavar;
         op_hdr->_maxval = maxval;
         op_hdr->_flags = flags;
         op_hdr->_slot = result_slot;
@@ -704,7 +704,7 @@ static int ap_exec(struct argparser *ap)
         for (uint32_t i = 0; i < ap->nopt; i++) {
                 op_hdr = ap->opts[i];
                 if (*op_hdr->_slot != NULL && op_hdr->_cb != NULL) {
-                        r = op_hdr->_cb(ap, &op_hdr->pub);
+                        r = op_hdr->_cb(ap, &op_hdr->view);
                         if (r != A_OK)
                                 return A_ERROR_CALLBACK_FAIL;
                 }
@@ -728,8 +728,8 @@ void _argparser_builtin_mutual_exclude(struct argparser *ap, ...)
 
                 if (op_hdr->_mulid != 0)
                         WARNING("option %s%s already in other mutual exclude group!\n",
-                                op_hdr->pub.shortopt ? "-" : "--",
-                                op_hdr->pub.shortopt ? op_hdr->pub.shortopt : op_hdr->pub.longopt);
+                                op_hdr->view.shortopt ? "-" : "--",
+                                op_hdr->view.shortopt ? op_hdr->view.shortopt : op_hdr->view.longopt);
 
                 op_hdr->_mulid = mulid;
         }
@@ -847,7 +847,7 @@ struct option *argparser_has(struct argparser *ap, const char *name)
         if (!op_hdr)
                 return NULL;
 
-        return *op_hdr->_slot ? &op_hdr->pub : NULL;
+        return *op_hdr->_slot ? &op_hdr->view : NULL;
 }
 
 uint32_t argparser_count(struct argparser *ap)
@@ -933,24 +933,24 @@ const char *argparser_help(struct argparser *ap)
                 char opt_buf[128] = "";
                 int pos = 0;
 
-                if (op_hdr->pub.shortopt) {
-                        if (op_hdr->pub.longopt) {
-                                pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "-%s, ", op_hdr->pub.shortopt);
+                if (op_hdr->view.shortopt) {
+                        if (op_hdr->view.longopt) {
+                                pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "-%s, ", op_hdr->view.shortopt);
                         } else {
-                                pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "-%s", op_hdr->pub.shortopt);
+                                pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "-%s", op_hdr->view.shortopt);
                         }
                 }
 
-                if (op_hdr->pub.longopt)
-                        pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "--%s", op_hdr->pub.longopt);
+                if (op_hdr->view.longopt)
+                        pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, "--%s", op_hdr->view.longopt);
 
                 if (op_hdr->_maxval > 0) {
                         if (op_hdr->_flags & O_REQUIRED) {
                                 pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, " <%s>",
-                                                op_hdr->pub.metavar ? op_hdr->pub.metavar : "value");
+                                                op_hdr->view.metavar ? op_hdr->view.metavar : "value");
                         } else {
                                 pos += snprintf(opt_buf + pos, sizeof(opt_buf) - pos, " [%s]",
-                                                op_hdr->pub.metavar ? op_hdr->pub.metavar : "value");
+                                                op_hdr->view.metavar ? op_hdr->view.metavar : "value");
                         }
 
                         if (op_hdr->_maxval > 1)
@@ -960,8 +960,8 @@ const char *argparser_help(struct argparser *ap)
                 opt_buf[pos] = '\0';
                 _append_help(ap, "  %-18s", opt_buf);
 
-                if (op_hdr->pub.help)
-                        _append_help(ap, " %s\n", op_hdr->pub.help);
+                if (op_hdr->view.help)
+                        _append_help(ap, " %s\n", op_hdr->view.help);
         }
 
         _append_help(ap, "\n");
