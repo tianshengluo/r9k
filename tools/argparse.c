@@ -512,14 +512,14 @@ static void check_warn_exists(struct argparse *ap, const char *longopt, const ch
         }
 }
 
-int _builtin_argparse_callback_help(struct argparse *ap, struct option *op_hdr)
+int _argparse_callback_help(struct argparse *ap, struct option *op_hdr)
 {
         (void) op_hdr;
         printf("%s", argparse_help(ap));
         exit(0);
 }
 
-int _builtin_argparse_callback_version(struct argparse *ap, struct option *op_hdr)
+int _argparse_callback_version(struct argparse *ap, struct option *op_hdr)
 {
         (void) op_hdr;
         printf("%s %s\n", ap->name, ap->version);
@@ -721,7 +721,7 @@ static int callback_exec(struct argparse *ap)
         return 0;
 }
 
-void _argparse_builtin_mutual_exclude(struct argparse *ap, ...)
+void _argparse_mutual_exclude(struct argparse *ap, ...)
 {
         va_list va;
         struct option **slot;
@@ -745,7 +745,7 @@ void _argparse_builtin_mutual_exclude(struct argparse *ap, ...)
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-static int _builtin_argparse_run(struct argparse *ap, int argc, char *argv[]) // NOLINT(*-reserved-identifier)
+static int _argparse_run(struct argparse *ap, int argc, char *argv[]) // NOLINT(*-reserved-identifier)
 {
         int r;
         int i = 1;
@@ -822,7 +822,7 @@ static int _builtin_argparse_run(struct argparse *ap, int argc, char *argv[]) //
 
         /* if include cmd parsing for sub command. */
         if (cmd) {
-                if ((r = _builtin_argparse_run(cmd, (int) ptrvec_count(&arg_vec), (char **) arg_vec.items)) != 0) {
+                if ((r = _argparse_run(cmd, (int) ptrvec_count(&arg_vec), (char **) arg_vec.items)) != 0) {
                         memcpy(ap->error, cmd->error, sizeof(ap->error));
                         goto out;
                 }
@@ -850,7 +850,7 @@ int argparse_run(struct argparse *ap, int argc, char *argv[])
                 return A_ERROR_SUBCOMMAND_CALL;
         }
 
-        return _builtin_argparse_run(ap, argc, argv);
+        return _argparse_run(ap, argc, argv);
 }
 
 const char *argparse_error(struct argparse *ap)

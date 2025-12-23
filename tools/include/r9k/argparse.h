@@ -76,8 +76,8 @@
 #define A_ERROR_NO_ARG_ACCEPT   (-0x0014)
 #define A_ERROR_AFTER_RUN       (-0x0015)
 
-#define A_CALLBACK_HELP _builtin_argparse_callback_help
-#define A_CALLBACK_VERSION _builtin_argparse_callback_version
+#define A_CALLBACK_HELP _argparse_callback_help
+#define A_CALLBACK_VERSION _argparse_callback_version
 
 struct argparse;
 struct option;
@@ -99,8 +99,8 @@ struct option
 };
 
 /* EXECUTE AND EXIT */
-int _builtin_argparse_callback_help(struct argparse *ap, struct option *opt); // NOLINT(*-reserved-identifier)
-int _builtin_argparse_callback_version(struct argparse *ap, struct option *opt); // NOLINT(*-reserved-identifier)
+int _argparse_callback_help(struct argparse *ap, struct option *opt); // NOLINT(*-reserved-identifier)
+int _argparse_callback_version(struct argparse *ap, struct option *opt); // NOLINT(*-reserved-identifier)
 
 /* If a result doesn't equal to 0 that mean error. */
 struct argparse *argparse_new(const char *name, const char *version); /* no builtin options. */
@@ -125,9 +125,9 @@ int argparse_addn(struct argparse *ap, struct option **result_slot, const char *
  * Each call to this macro creates an independent group.
  * Options in the same group cannot appear simultaneously. */
 #define argparse_mutual_exclude(ap, ...) \
-        _argparse_builtin_mutual_exclude((ap), __VA_ARGS__, NULL)
+        _argparse_mutual_exclude((ap), __VA_ARGS__, NULL)
 
-void _argparse_builtin_mutual_exclude(struct argparse *ap, ...); // NOLINT(*-reserved-identifier)
+void _argparse_mutual_exclude(struct argparse *ap, ...); // NOLINT(*-reserved-identifier)
 
 /* Parsing arguments */
 int argparse_run(struct argparse *ap, int argc, char *argv[]);
