@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         argparse_add0(ap, NULL, "print", NULL, "read ontents in clipboard", print_callback, 0);
         argparse_add0(ap, NULL, "q", "quiet", "quiet write to clipboard", NULL, 0);
 
-        if (argparse_run(ap, argc, argv) != A_OK)
+        if (argparse_run(ap, argc, argv) != 0)
                 PANIC("error: %s\n", argparse_error(ap));
 
         /* default call write */
