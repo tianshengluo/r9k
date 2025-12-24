@@ -513,18 +513,18 @@ static void check_warn_exists(struct argparse *ap, const char *longopt, const ch
         }
 }
 
-int _argparse_callback_help(struct argparse *ap, struct option *op_hdr)
+int _argparse_callback_help(struct argparse *ap, struct option *opt)
 {
-        (void) op_hdr;
+        (void) opt;
         printf("%s", argparse_help(ap));
-        return A_EXIT_OK;
+        exit(0);
 }
 
-int _argparse_callback_version(struct argparse *ap, struct option *op_hdr)
+int _argparse_callback_version(struct argparse *ap, struct option *opt)
 {
-        (void) op_hdr;
+        (void) opt;
         printf("%s %s\n", ap->name, ap->version);
-        return A_EXIT_OK;
+        exit(0);
 }
 
 struct argparse *argparse_new(const char *name, const char *version)
@@ -716,9 +716,6 @@ static int callback_exec(struct argparse *ap)
                 op_hdr = ptrvec_fetch(&ap->opt_vec, i);
                 if (*op_hdr->_slot != NULL && op_hdr->_cb != NULL) {
                         r = op_hdr->_cb(ap, &op_hdr->view);
-                        if (r == A_EXIT_OK)
-                                return r;
-
                         if (r != A_OK)
                                 return A_ERROR_CALLBACK_FAIL;
                 }
@@ -834,18 +831,13 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[]) // NOLINT(
                 }
 
                 r = cmd->cmd_callback(cmd);
-                if (r == A_EXIT_OK)
-                        exit(0);
-
                 if (r != A_OK) {
-                        error_rec(ap, "subcommand callback fail");
+                        error_rec(ap, "%s: callback fail", cmd->name);
                         goto out;
                 }
         }
 
         r = callback_exec(ap);
-        if (r == A_EXIT_OK)
-                exit(0);
 
 out:
         ptrvec_free(&arg_vec);

@@ -27,7 +27,7 @@ static int print_callback(struct argparse *ap, struct option *opt)
 
         pclose(fp);
 
-        return A_EXIT_OK;
+        exit(0);
 }
 
 static void clipboard_write(struct argparse *ap)

@@ -75,7 +75,7 @@ static int url_encode(struct argparse *ap)
 
         free(out);
 
-        return A_EXIT_OK;
+        exit(0);
 }
 
 static int url_decode(struct argparse *ap)
@@ -111,7 +111,7 @@ static int url_decode(struct argparse *ap)
 
         free(out);
 
-        return A_EXIT_OK;
+        exit(0);
 }
 
 static int url_query(struct argparse *ap)
@@ -152,7 +152,7 @@ static int url_query(struct argparse *ap)
                 q = end + 1;
         }
 
-        return A_EXIT_OK;
+        exit(0);
 }
 
 int main(int argc, char* argv[])
