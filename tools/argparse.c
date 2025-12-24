@@ -37,7 +37,7 @@ static int ptrvec_init(struct ptrvec *p_vec)
         p_vec->count = 0;
         p_vec->cap   = INIT_VEC_CAP;
 
-        return A_OK;
+        return 0;
 }
 
 static void ptrvec_free(struct ptrvec *vec)
@@ -540,13 +540,13 @@ struct argparse *argparse_new(const char *name, const char *version)
         ap->_mulid = 1;
 
         /* options */
-        if (ptrvec_init(&ap->opt_vec) != A_OK) {
+        if (ptrvec_init(&ap->opt_vec) != 0) {
                 argparse_free(ap);
                 return NULL;
         }
 
         /* values */
-        if (ptrvec_init(&ap->posval_vec) != A_OK) {
+        if (ptrvec_init(&ap->posval_vec) != 0) {
                 argparse_free(ap);
                 return NULL;
         }
@@ -716,7 +716,7 @@ static int callback_exec(struct argparse *ap)
                 op_hdr = ptrvec_fetch(&ap->opt_vec, i);
                 if (*op_hdr->_slot != NULL && op_hdr->_cb != NULL) {
                         r = op_hdr->_cb(ap, &op_hdr->view);
-                        if (r != A_OK)
+                        if (r != 0)
                                 return A_ERROR_CALLBACK_FAIL;
                 }
         }
@@ -771,12 +771,12 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
 
         /* sub command argv copy */
         struct ptrvec arg_vec;
-        if ((r = ptrvec_init(&arg_vec)) != A_OK)
+        if ((r = ptrvec_init(&arg_vec)) != 0)
                 goto out;
 
         if (argc > 1 && (cmd = find_subcmd(ap, argv[1])) != NULL) {
                 i = 2; /* skip sub command */
-                if ((r = ptrvec_push_back(&arg_vec, argv[1])) != A_OK)
+                if ((r = ptrvec_push_back(&arg_vec, argv[1])) != 0)
                         goto out;
         }
 
@@ -797,7 +797,7 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
                         tok += 2;
 
                         if (cmd && find_hdr_option(cmd, tok)) {
-                                if ((r = ptrvec_push_back(&arg_vec, argv[i])) != A_OK)
+                                if ((r = ptrvec_push_back(&arg_vec, argv[i])) != 0)
                                         goto out;
                                 continue;
                         }
@@ -812,7 +812,7 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
                 tok++; /* skip '-' */
 
                 if (cmd && find_hdr_option(cmd, tok)) {
-                        if ((r = ptrvec_push_back(&arg_vec, argv[i])) != A_OK)
+                        if ((r = ptrvec_push_back(&arg_vec, argv[i])) != 0)
                                 goto out;
                         continue;
                 }
@@ -830,7 +830,7 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
                 }
 
                 r = cmd->cmd_callback(cmd);
-                if (r != A_OK) {
+                if (r != 0) {
                         error_rec(ap, "%s: callback fail", cmd->name);
                         goto out;
                 }

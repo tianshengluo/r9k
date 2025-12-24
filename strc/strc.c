@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 
         argparse_mutual_exclude(ap, &c, &m, &l);
 
-        if (argparse_run(ap, argc, argv) != A_OK)
+        if (argparse_run(ap, argc, argv) != 0)
                 PANIC("%s\n", argparse_error(ap));
 
         if (f || argparse_count(ap) == 0) {

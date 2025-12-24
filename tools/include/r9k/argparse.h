@@ -60,7 +60,6 @@
 #define O_CONCAT                (1 << 2)  /* allow arguments like: -O1 -O2 */
 #define O_NOGROUP               (1 << 3)  /* not allow a group */
 
-#define A_OK                    (-0x0000) /* return ok */
 #define A_ERROR_REQUIRED_VAL    (-0x0001) /* option required value */
 #define A_ERROR_UNKNOWN_OPT     (-0x0002) /* unknown options */
 #define A_ERROR_TOO_MANY_VAL    (-0x0003) /* option too many values */
