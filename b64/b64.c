@@ -19,11 +19,8 @@ static int encode(struct argparse *ap, struct option *e)
                 PANIC("error: invalid arguments\n");
 
         const char *plain = argparse_val(ap, 0);
-        char *cipher = NULL;
-
-	int r = base64_encode((unsigned char *) plain, strlen(plain), &cipher);
-
-	PANIC_IF(r == -ENOMEM, "error: no memory\n");
+        char *cipher = base64_encode((unsigned char *) plain, strlen(plain));
+	PANIC_IF(!cipher, "error: no memory\n");
 
 	if (argparse_has(ap, "u")) {
 		size_t n = strlen(cipher);
@@ -63,7 +60,7 @@ static int decode(struct argparse *ap, struct option *e)
 
 		size_t pad = n & 3;
 		if (pad == 1)
-			PANIC("error: invalid base64");
+			PANIC("error: invalid url safe base64");
 
 		if (pad == 2) {
 			cipher[n++] = '=';
@@ -74,12 +71,10 @@ static int decode(struct argparse *ap, struct option *e)
 		cipher[n] = '\0';
 	}
 
-	size_t out_len;
-	unsigned char *plain;
-	int r = base64_decode(cipher, &out_len, &plain);
-	PANIC_IF(r == -ENOMEM, "error: no memory\n");
-	PANIC_IF(r == -EINVAL, "error: invalid base64\n");
-	fwrite(plain, 1, out_len, stdout);
+	size_t size;
+	unsigned char *plain = base64_decode(cipher, &size);
+	PANIC_IF(!plain, "error: invalid base64\n");
+	fwrite(plain, 1, size, stdout);
 	putchar('\n');
 
 	free(cipher);

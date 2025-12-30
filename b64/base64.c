@@ -6,7 +6,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/errno.h>
 
 static const char b64_map[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -32,15 +31,17 @@ static void base64_init(void)
 	b64_initialized = 1;
 }
 
-int base64_encode(const unsigned char *data, size_t len, char **p_plain)
+char *base64_encode(const unsigned char *data, size_t len)
 {
 	size_t out_len = (len + 2) / 3 * 4;
 	char *out = malloc(out_len + 1);
 	size_t i, j;
 	unsigned int v;
 
-	if (!out)
-		return -ENOMEM;
+	if (!out) {
+		perror("malloc failed");
+		return NULL;
+	}
 
 	for (i = 0, j = 0; i < len; i += 3) {
 		v = data[i] << 16;
@@ -56,11 +57,10 @@ int base64_encode(const unsigned char *data, size_t len, char **p_plain)
 	}
 
 	out[j] = '\0';
-	*p_plain = out;
-	return 0;
+	return out;
 }
 
-int base64_decode(const char *b64, size_t *out_len, unsigned char **p_cipher)
+unsigned char *base64_decode(const char *b64, size_t *out_len)
 {
 	if (!b64_initialized)
 		base64_init();
@@ -73,14 +73,16 @@ int base64_decode(const char *b64, size_t *out_len, unsigned char **p_cipher)
 	int pad;
 
 	if (len % 4)
-		return -EINVAL;
+		return NULL;
 
 	if (len >= 1 && b64[len - 1] == '=') alloc--;
 	if (len >= 2 && b64[len - 2] == '=') alloc--;
 
 	out = malloc(alloc);
-	if (!out)
-		return -ENOMEM;
+	if (!out) {
+		perror("malloc failed");
+		return NULL;
+	}
 
 	for (i = 0, j = 0; i < len; i += 4) {
 		pad = 0;
@@ -118,12 +120,9 @@ int base64_decode(const char *b64, size_t *out_len, unsigned char **p_cipher)
 	if (out_len)
 		*out_len = j;
 
-	*p_cipher = out;
-	return 0;
+	return out;
 
 err:
 	free(out);
-	out = NULL;
-
-	return -EINVAL;
+	return NULL;
 }
