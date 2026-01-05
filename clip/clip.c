@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <r9k/argparse.h>
 #include <r9k/panic.h>
-#include <r9k/ioutils.h>
+#include <r9k/io.h>
 #include <r9k/string.h>
 
 static int print_callback(struct argparse *ap, struct option *opt)
@@ -18,7 +18,7 @@ static int print_callback(struct argparse *ap, struct option *opt)
         if (!fp)
                 PANIC("error: popen() failed\n");
 
-        char *buf = readall(fp);
+        char *buf = slurp(fp, NULL);
         if (buf) {
                 printf("%s", buf);
                 free(buf);
@@ -37,7 +37,7 @@ static void clipboard_write(struct argparse *ap)
         if (!fp)
                 PANIC("error: popen() failed\n");
 
-        char *buf = readall(stdin);
+        char *buf = slurp(stdin, NULL);
         if (!buf)
                 PANIC("error: realall() failed\n");
 

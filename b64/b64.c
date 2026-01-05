@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <r9k/argparse.h>
 #include <r9k/panic.h>
-#include <r9k/ioutils.h>
+#include <r9k/io.h>
 #include <r9k/string.h>
 
 #include "base64.h"
@@ -23,12 +23,12 @@ static int encode(struct argparse *ap, struct option *e)
 	char *origin = NULL;
         const char *plain = argparse_val(ap, 0);
 	if (!file && !plain) {
-		origin = readin();
+		origin = slurp(stdin, NULL);
 		plain = trim(origin);
 	}
 
 	if (file) {
-		origin = readfile(file->sval);
+		origin = readfile(file->sval, NULL);
 		plain = trim(origin);
 	}
 
@@ -46,7 +46,7 @@ static int encode(struct argparse *ap, struct option *e)
 	}
 
 	if (output) {
-		writefile(output->sval, "w+", cipher, strlen(cipher));
+		writefile(output->sval, cipher, strlen(cipher));
 	} else {
 		printf("%s\n", cipher);
 	}
@@ -69,12 +69,12 @@ static int decode(struct argparse *ap, struct option *e)
 	char *origin = NULL;
 	const char *srcptr = argparse_val(ap, 0);
 	if (!file && !srcptr) {
-		origin = readin();
+		origin = slurp(stdin, NULL);
 		srcptr = trim(origin);
 	}
 
 	if (file) {
-		origin = readfile(file->sval);
+		origin = readfile(file->sval, NULL);
 		srcptr = trim(origin);
 	}
 
@@ -108,7 +108,7 @@ static int decode(struct argparse *ap, struct option *e)
 	PANIC_IF(!plain, "error: invalid base64\n");
 
 	if (output) {
-		if (writefile(output->sval, "w+", plain, size) < 0)
+		if (writefile(output->sval, plain, size) < 0)
 			PANIC("error: cannot write to %s, cause: %s\n", output->sval, strerror(errno));
 	} else {
 		fwrite(plain, 1, size, stdout);
