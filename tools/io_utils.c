@@ -126,7 +126,7 @@ ssize_t fdump(FILE *stream, const void *buf, size_t count)
         return dump(fileno(stream), buf, count);
 }
 
-char *readfile(FILE *stream)
+char *stream_read_c(FILE *stream)
 {
         if (!stream) {
                 errno = EINVAL;
@@ -152,32 +152,31 @@ char *readfile(FILE *stream)
         return buf;
 }
 
-ssize_t writefile(FILE *stream, const void *buf, size_t count)
-{
-        if (!stream || !buf) {
-                errno = EINVAL;
-                return -1;
-        }
-
-        if (count == 0)
-                return 0;
-
-        return fdump(stream, buf, count);
-}
-
-char *readpath(const char *path)
+void *path_read_v(const char *path, size_t *len)
 {
         FILE *stream = fopen(path, "rb");
         if (!stream)
                 return NULL;
 
-        char *buf = readfile(stream);
+        char *buf = fslurp(stream, len);
         fclose(stream);
 
         return buf;
 }
 
-ssize_t writepath(const char *path, const void *buf, size_t count)
+char *path_read(const char *path)
+{
+        FILE *stream = fopen(path, "rb");
+        if (!stream)
+                return NULL;
+
+        char *buf = stream_read_c(stream);
+        fclose(stream);
+
+        return buf;
+}
+
+ssize_t path_write(const char *path, const void *buf, size_t count)
 {
         if (!buf) {
                 errno = EINVAL;
@@ -191,18 +190,21 @@ ssize_t writepath(const char *path, const void *buf, size_t count)
         if (!stream)
                 return -1;
 
-        ssize_t r = writefile(stream, buf, count);
+        ssize_t r = fdump(stream, buf, count);
         fclose(stream);
 
         return r;
 }
 
-ssize_t readall(int fd, void *buf, size_t count)
+ssize_t read_exact(int fd, void *buf, size_t count)
 {
         if (fd < 0 || !buf) {
                 errno = EINVAL;
                 return -1;
         }
+
+        if (!count)
+                return 0;
 
         size_t n = 0;
 
@@ -226,17 +228,20 @@ ssize_t readall(int fd, void *buf, size_t count)
         return n;
 }
 
-ssize_t writeall(int fd, const void *buf, size_t count)
+ssize_t write_exact(int fd, const void *buf, size_t count)
 {
         if (fd < 0 || !buf) {
                 errno = EINVAL;
                 return -1;
         }
 
+        if (!count)
+                return 0;
+
         size_t n = 0;
 
         while (n < count) {
-                ssize_t r = write(fd, (uint8_t *) buf + n, count - n);
+                ssize_t r = write(fd, (const uint8_t *) buf + n, count - n);
 
                 if (r > 0) {
                         n += r;
