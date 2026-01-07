@@ -12,6 +12,8 @@
 
 #define BUFFSIZE 8192
 
+typedef ssize_t (io_readwrite_t) (int fd, const void *buf, size_t count);
+
 void *slurp(int fd, size_t *len)
 {
         if (fd < 0)
@@ -24,27 +26,22 @@ void *slurp(int fd, size_t *len)
 
         cap = BUFFSIZE;
         buf = (uint8_t *) malloc(cap);
-        if (!buf) {
-                errno = ENOMEM;
-                return NULL;
-        }
+        if (!buf)
+                goto err_nomem;
 
         while (1) {
                 if (nread >= cap) {
+                        if (cap > SIZE_MAX - cap)
+                                goto err_nomem;
+
                         cap = cap * 2;
 
-                        if (cap <= nread || cap > SIZE_MAX / 2) {
-                                free(buf);
-                                errno = ENOMEM;
-                                return NULL;
-                        }
+                        if (cap <= nread)
+                                goto err_nomem;
 
                         tmp = realloc(buf, cap);
-                        if (!tmp) {
-                                free(buf);
-                                errno = ENOMEM;
-                                return NULL;
-                        }
+                        if (!tmp)
+                                goto err_nomem;
 
                         buf = tmp;
                 }
@@ -74,6 +71,13 @@ void *slurp(int fd, size_t *len)
                 *len = nread;
 
         return buf;
+
+err_nomem:
+        if (buf)
+                free(buf);
+
+        errno = ENOMEM;
+        return NULL;
 }
 
 ssize_t dump(int fd, const void *buf, size_t count)
@@ -191,12 +195,14 @@ ssize_t path_write(const char *path, const void *buf, size_t count)
                 return -1;
 
         ssize_t r = fdump(stream, buf, count);
-        fclose(stream);
+
+        if (fclose(stream) != 0)
+                return -1;
 
         return r;
 }
 
-ssize_t read_exact(int fd, void *buf, size_t count)
+static ssize_t _io_buffer_loop(int fd, const void *buf, size_t count, io_readwrite_t readwrite)
 {
         if (fd < 0 || !buf) {
                 errno = EINVAL;
@@ -209,50 +215,33 @@ ssize_t read_exact(int fd, void *buf, size_t count)
         size_t n = 0;
 
         while (n < count) {
-                ssize_t r = read(fd, (uint8_t *) buf + n, count - n);
+                ssize_t r;
+
+                r = readwrite(fd, (uint8_t *) buf + n, count - n);
 
                 if (r > 0) {
                         n += r;
                         continue;
                 }
 
-                if (r == 0)
-                        break;
-
-                if (r == -1 && errno == EINTR)
-                        continue;
-
-                return r;
+                if (r == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                                return n;
+                        return -1;
+                }
         }
 
         return n;
 }
 
-ssize_t write_exact(int fd, const void *buf, size_t count)
+ssize_t io_buffer_read(int fd, void *buf, size_t count)
 {
-        if (fd < 0 || !buf) {
-                errno = EINVAL;
-                return -1;
-        }
+        return _io_buffer_loop(fd, buf, count, read);
+}
 
-        if (!count)
-                return 0;
-
-        size_t n = 0;
-
-        while (n < count) {
-                ssize_t r = write(fd, (const uint8_t *) buf + n, count - n);
-
-                if (r > 0) {
-                        n += r;
-                        continue;
-                }
-
-                if (r == -1 && errno == EINTR)
-                        continue;
-
-                return r;
-        }
-
-        return n;
+ssize_t io_buffer_write(int fd, const void *buf, size_t count)
+{
+        return _io_buffer_loop(fd, buf, count, write);
 }
