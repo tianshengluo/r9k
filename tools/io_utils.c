@@ -12,7 +12,19 @@
 
 #define BUFFSIZE 8192
 
-typedef ssize_t (io_readwrite_t) (int fd, const void *buf, size_t count);
+typedef ssize_t (*io_rw_t)(int fd, void *buf, size_t count);
+
+__attr_always_inline
+inline static ssize_t _rw_read(int fd, void *buf, size_t count)
+{
+        return read(fd, buf, count);
+}
+
+__attr_always_inline
+inline static ssize_t _rw_write(int fd, void *buf, size_t count)
+{
+        return write(fd, buf, count);
+}
 
 void *slurp(int fd, size_t *len)
 {
@@ -202,7 +214,7 @@ ssize_t path_write(const char *path, const void *buf, size_t count)
         return r;
 }
 
-static ssize_t _io_buffer_loop(int fd, const void *buf, size_t count, io_readwrite_t readwrite)
+static ssize_t _io_buffer_loop(int fd, const void *buf, size_t count, io_rw_t rw)
 {
         if (fd < 0 || !buf) {
                 errno = EINVAL;
@@ -217,7 +229,7 @@ static ssize_t _io_buffer_loop(int fd, const void *buf, size_t count, io_readwri
         while (n < count) {
                 ssize_t r;
 
-                r = readwrite(fd, (uint8_t *) buf + n, count - n);
+                r = rw(fd, (uint8_t *) buf + n, count - n);
 
                 if (r > 0) {
                         n += r;
@@ -238,10 +250,10 @@ static ssize_t _io_buffer_loop(int fd, const void *buf, size_t count, io_readwri
 
 ssize_t io_buffer_read(int fd, void *buf, size_t count)
 {
-        return _io_buffer_loop(fd, buf, count, read);
+        return _io_buffer_loop(fd, buf, count, _rw_read);
 }
 
 ssize_t io_buffer_write(int fd, const void *buf, size_t count)
 {
-        return _io_buffer_loop(fd, buf, count, write);
+        return _io_buffer_loop(fd, buf, count, _rw_write);
 }
