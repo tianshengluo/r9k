@@ -8,14 +8,18 @@ OBJS        := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
 LINKS       := -ltools
 BIN         := $(BINDIR)/$(MODULE)
 
+PRINTF 		:= printf "\033[0;32m[%-6s] %-3s %s\033[0m\n"
+
 all: $(BIN)
 
 $(BIN): $(OBJS)
 	@mkdir -p $(dir $@)
-	$(CC) $(OBJS) $(CFLAGS) $(LINKDIR) $(LINKS) $(FRAMEWORKS) -o $@
+	@$(PRINTF) "$(MODULE)" "LD" "$(notdir $@)"
+	@$(CC) $(OBJS) $(CFLAGS) $(LINKDIR) $(LINKS) $(FRAMEWORKS) -o $@
 
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	@$(PRINTF) "$(MODULE)" "CC" "$(notdir $<)"
+	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 .PHONY: all

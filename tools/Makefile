@@ -7,15 +7,19 @@ LIB         := $(LIBDIR)/libtools.a
 AR          := ar
 ARFLAGS     := rcs
 
+PRINTF 		:= printf "\033[0;32m[%-6s] %-3s %s\033[0m\n"
+
 all: $(LIB)
 
 $(LIB): $(OBJS)
 	@mkdir -p $(dir $@)
-	$(AR) $(ARFLAGS) $@ $^
+	@$(PRINTF) "$(MODULE)" "AR" "$(notdir $@)"
+	@$(AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+	@$(PRINTF) "$(MODULE)" "CC" "$(notdir $<)"
+	@$(CC) $(CFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 -include $(OBJS:.o=.d)
 

@@ -12,7 +12,7 @@ SUBDIRS   := tools strc url clip b64 calc rsh
 all: $(SUBDIRS)
 
 $(SUBDIRS):
-	$(MAKE) -C $@ \
+	@$(MAKE) -C $@ \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
 		BUILDDIR="$(BUILDDIR)" \
