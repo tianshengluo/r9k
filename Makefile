@@ -7,11 +7,22 @@ BINDIR    := $(BUILDDIR)/bin
 INCLUDES  := -I../include -I../tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
-SUBDIRS   := tools strc url clip b64 calc rsh
+LIBS      := tools
+SUBDIRS   := strc url clip b64 calc rsh
 
-all: $(SUBDIRS)
+all: $(LIBS) $(SUBDIRS)
 
-$(SUBDIRS):
+$(LIBS):
+	@$(MAKE) -C $@ \
+		CC="$(CC)" \
+		CFLAGS="$(CFLAGS)" \
+		BUILDDIR="$(BUILDDIR)" \
+		LINKDIR="$(LINKDIR)" \
+		INCLUDES="$(INCLUDES)" \
+		LIBDIR="$(LIBDIR)" \
+	  	BINDIR="$(BINDIR)"
+
+$(SUBDIRS): $(LIBS)
 	@$(MAKE) -C $@ \
 		CC="$(CC)" \
 		CFLAGS="$(CFLAGS)" \
@@ -24,4 +35,4 @@ $(SUBDIRS):
 clean:
 	@rm -rf build
 
-.PHONY: all clean $(SUBDIRS)
+.PHONY: all clean $(SUBDIRS) $(LIBS)

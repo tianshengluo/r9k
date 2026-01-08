@@ -7,7 +7,7 @@ LIB         := $(LIBDIR)/libtools.a
 AR          := ar
 ARFLAGS     := rcs
 
-PRINTF 		:= printf "\033[0;32m[%-6s] %-3s %s\033[0m\n"
+PRINTF 		:= printf "\033[0;32m[%-5s] %s %s\033[0m\n"
 
 all: $(LIB)
 
