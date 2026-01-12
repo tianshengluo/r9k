@@ -14,14 +14,12 @@
 
 typedef ssize_t (*io_rw_t)(int fd, void *buf, size_t count);
 
-__attr_always_inline
-inline static ssize_t _rw_read(int fd, void *buf, size_t count)
+static ssize_t _rw_read(int fd, void *buf, size_t count)
 {
         return read(fd, buf, count);
 }
 
-__attr_always_inline
-inline static ssize_t _rw_write(int fd, void *buf, size_t count)
+static ssize_t _rw_write(int fd, void *buf, size_t count)
 {
         return write(fd, buf, count);
 }
