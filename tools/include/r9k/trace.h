@@ -29,6 +29,22 @@ static ssize_t _write_trace(int fd, const void *data, size_t size, const char *f
 }
 
 __attr_unused
+static ssize_t _fread_trace(void *buf, size_t size, size_t items, FILE *stream, const char *filename, int line)
+{
+        ssize_t n = fread(buf, size, items, stream);
+        printf("[io ] %s:%d _fread_trace fp: %p buf: %p, sz: %zu, items: %zu. (%ld)\n", filename, line, stream, buf, size, items, n);
+        return n;
+}
+
+__attr_unused
+static ssize_t _fwrite_trace(const void *data, size_t size, size_t items, FILE *stream, const char *filename, int line)
+{
+        ssize_t n = fwrite(data, size, items, stream);
+        printf("[io ] %s:%d _fread_trace fp: %p buf: %p, sz: %zu, items: %zu. (%ld)\n", filename, line, stream, data, size, items, n);
+        return n;
+}
+
+__attr_unused
 static void *_malloc_trace(size_t size, const char *filename, int line)
 {
         void *ptr = malloc(size);
@@ -64,6 +80,8 @@ static void _free_trace(void *ptr, const char *filename, int line)
 // unistd.h
 #define read(fd, data, size) _read_trace(fd, data, size, __FILE__, __LINE__)
 #define write(fd, data, size) _write_trace(fd, data, size, __FILE__, __LINE__)
+#define fread(buf, size, items, stream) _fread_trace(buf, size, items, stream, __FILE__, __LINE__)
+#define fwrite(data, size, items, stream) _fwrite_trace(data, size, items, stream, __FILE__, __LINE__)
 
 // stdlib.h
 #define malloc(size) _malloc_trace(size, __FILE__, __LINE__)
