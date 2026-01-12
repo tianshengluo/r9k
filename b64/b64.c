@@ -23,12 +23,12 @@ static int encode(struct argparse *ap, struct option *e)
 	char *origin = NULL;
         const char *plain = argparse_val(ap, 0);
 	if (!file && !plain) {
-		origin = stream_read_c(stdin);
+		origin = slurp(stdin);
 		plain = trim(origin);
 	}
 
 	if (file) {
-		origin = path_read(file->sval);
+		origin = readfile(file->sval);
 		plain = trim(origin);
 	}
 
@@ -46,7 +46,7 @@ static int encode(struct argparse *ap, struct option *e)
 	}
 
 	if (output) {
-		path_write(output->sval, cipher, strlen(cipher));
+		writefile(output->sval, cipher, strlen(cipher));
 	} else {
 		printf("%s\n", cipher);
 	}
@@ -69,12 +69,12 @@ static int decode(struct argparse *ap, struct option *e)
 	char *origin = NULL;
 	const char *srcptr = argparse_val(ap, 0);
 	if (!file && !srcptr) {
-		origin = stream_read_c(stdin);
+		origin = slurp(stdin);
 		srcptr = trim(origin);
 	}
 
 	if (file) {
-		origin = path_read(file->sval);
+		origin = readfile(file->sval);
 		srcptr = trim(origin);
 	}
 
@@ -108,7 +108,7 @@ static int decode(struct argparse *ap, struct option *e)
 	PANIC_IF(!plain, "error: invalid base64\n");
 
 	if (output) {
-		if (path_write(output->sval, plain, size) < 0)
+		if (writefile(output->sval, plain, size) < 0)
 			PANIC("error: cannot write to %s, cause: %s\n", output->sval, strerror(errno));
 	} else {
 		fwrite(plain, 1, size, stdout);
