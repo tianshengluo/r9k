@@ -19,7 +19,7 @@
 #include <string.h>
 #include <signal.h>
 
-#define BUFFER_MAX 16384
+#define LINE_BUFF_MAX 16384
 #define HISTORY_MAX 256
 
 static struct termios orig;
@@ -55,7 +55,7 @@ static struct history *history_create(void)
 
         history->lines = (char **) calloc(history->max, sizeof(char *));
         for (size_t i = 0; i < history->max; i++)
-                history->lines[i] = (char *) calloc(BUFFER_MAX, sizeof(char));
+                history->lines[i] = (char *) calloc(LINE_BUFF_MAX, sizeof(char));
 
         return history;
 }
@@ -67,7 +67,7 @@ static struct history *history_copy(const struct history *orig)
         copy->max = orig->len;
 
         for (size_t i = 0; i < orig->len; i++)
-                memcpy(copy->lines[i], orig->lines[i], BUFFER_MAX);
+                memcpy(copy->lines[i], orig->lines[i], LINE_BUFF_MAX);
 
         return copy;
 }
@@ -115,6 +115,7 @@ static void signal_handler(int sig)
         exit(0);
 }
 
+__attribute__((unused))
 static void setup_signal_handler(void)
 {
         signal(SIGINT, signal_handler);
@@ -409,8 +410,8 @@ char *readline(const char *prompt)
          * line->bufptr 在程序运行的过程中可能会随时指向不同的内存快照 snap（历史记录切换时），
          * 方便用户随时编辑历史行，最终读取输入行不一定在 edit_buf 中，也可能是在 line->snap 中。
          */
-        char *edit_buf = malloc(BUFFER_MAX);
-        memset(edit_buf, 0, BUFFER_MAX);
+        char *edit_buf = malloc(LINE_BUFF_MAX);
+        memset(edit_buf, 0, LINE_BUFF_MAX);
         line.bufptr = edit_buf;
         line.saveptr = edit_buf;
 
