@@ -7,10 +7,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
-#define N_TRACE
 #include <r9k/trace.h>
+#include <r9k/size.h>
 
-#define BUFFSIZE 8192
+#define SLURP_BUFF_MAX (SIZE_GB * 4UL)
 
 typedef ssize_t (*io_rw_t)(int fd, void *buf, size_t count);
 
@@ -26,67 +26,84 @@ static ssize_t _rw_write(int fd, void *buf, size_t count)
 
 void *slurp(int fd, size_t *len)
 {
-        if (fd < 0)
+        uint8_t *buf = NULL;
+        uint8_t *tmp;
+        size_t cap= SIZE_KB * 4;
+        size_t nread = 0;
+        uint8_t is_stream = 1;
+        struct stat st;
+
+        if (fd < 0) {
+                errno = EBADF;
+                return NULL;
+        }
+
+        if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
+                if (st.st_size < 0) {
+                        errno = EOVERFLOW;
+                        return NULL;
+                }
+
+                if ((uintmax_t) st.st_size > SLURP_BUFF_MAX) {
+                        errno = ENOMEM;
+                        return NULL;
+                }
+
+                cap = (size_t) st.st_size;
+                is_stream = 0;
+        }
+
+        buf = malloc(cap);
+        if (!buf)
                 return NULL;
 
-        uint8_t *buf = NULL;
-        uint8_t *tmp = NULL;
-        size_t cap = 0;
-        size_t nread = 0;
-
-        cap = BUFFSIZE;
-        buf = (uint8_t *) malloc(cap);
-        if (!buf)
-                goto err_nomem;
-
         while (1) {
-                if (nread >= cap) {
-                        if (cap > SIZE_MAX - cap)
-                                goto err_nomem;
+                ssize_t n;
 
-                        cap = cap * 2;
-
-                        if (cap <= nread)
-                                goto err_nomem;
+                if (is_stream && cap - nread < SIZE_KB * 4) {
+                        cap += cap / 2;
+                        if (cap > SLURP_BUFF_MAX) {
+                                errno = ENOMEM;
+                                goto err;
+                        }
 
                         tmp = realloc(buf, cap);
                         if (!tmp)
-                                goto err_nomem;
+                                goto err;
 
                         buf = tmp;
                 }
 
-                ssize_t n = read(fd, buf + nread, cap - nread);
+                n = read(fd, buf + nread, cap - nread);
+                if (n == 0)
+                        break;
 
                 if (n > 0) {
                         nread += n;
                         continue;
                 }
 
-                if (n == 0)
-                        break;
-
-                if (n == -1 && errno == EINTR)
+                if (errno == EINTR
+                        || errno == EAGAIN
+                        || errno == EWOULDBLOCK)
                         continue;
 
-                free(buf);
-                return NULL;
+                goto err;
         }
 
-        tmp = realloc(buf, nread);
-        if (tmp)
-                buf = tmp;
+        if (is_stream && cap > nread) {
+                tmp = realloc(buf, nread);
+                if (tmp)
+                        buf = tmp;
+        }
 
         if (len)
                 *len = nread;
 
         return buf;
 
-err_nomem:
-        if (buf)
-                free(buf);
-
-        errno = ENOMEM;
+err:
+        free(buf);
         return NULL;
 }
 

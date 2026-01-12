@@ -2,8 +2,8 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 Varketh Nockrath
  */
-#ifndef MEM_H_
-#define MEM_H_
+#ifndef TRACE_H_
+#define TRACE_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,7 @@ __attr_unused
 static ssize_t _read_trace(int fd, void *data, size_t size, const char *filename, int line)
 {
         ssize_t n = read(fd, data, size);
-        printf("[io ] %s:%d _read_trace fd -> %d buf: %p, %zu, n: %ld\n", filename, line, fd, data, size, n);
+        printf("[io ] %s:%d _read_trace fd -> %d buf: %p, sz: %zu, n: %ld\n", filename, line, fd, data, size, n);
         return n;
 }
 
@@ -24,7 +24,7 @@ __attr_unused
 static ssize_t _write_trace(int fd, const void *data, size_t size, const char *filename, int line)
 {
         ssize_t n = write(fd, data, size);
-        printf("[io ] %s:%d _write_trace fd -> %d buf: %p, %zu, n: %ld\n", filename, line, fd, data, size, n);
+        printf("[io ] %s:%d _write_trace fd -> %d buf: %p, sz: %zu, n: %ld\n", filename, line, fd, data, size, n);
         return n;
 }
 
@@ -73,4 +73,4 @@ static void _free_trace(void *ptr, const char *filename, int line)
 
 #endif
 
-#endif /* MEM_H_ */
+#endif /* TRACE_H_ */
