@@ -472,7 +472,7 @@ void add_history(const char *line)
 const char **get_history(size_t *p_size)
 {
         *p_size = hist->len;
-        return hist->lines;
+        return (const char **) hist->lines;
 }
 
 void clear()
