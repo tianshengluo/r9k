@@ -77,18 +77,22 @@ static void _free_trace(void *ptr, const char *filename, int line)
         free(ptr);
 }
 
+#ifndef N_TRACE_IO
 // unistd.h
 #define read(fd, data, size) _read_trace(fd, data, size, __FILE__, __LINE__)
 #define write(fd, data, size) _write_trace(fd, data, size, __FILE__, __LINE__)
 #define fread(buf, size, items, stream) _fread_trace(buf, size, items, stream, __FILE__, __LINE__)
 #define fwrite(data, size, items, stream) _fwrite_trace(data, size, items, stream, __FILE__, __LINE__)
+#endif /* N_TRACE_IO */
 
+#ifndef N_TRACE_MEM
 // stdlib.h
 #define malloc(size) _malloc_trace(size, __FILE__, __LINE__)
 #define calloc(count, size) _calloc_trace(count, size, __FILE__, __LINE__)
 #define realloc(ptr, size) _realloc_trace(ptr, size, __FILE__, __LINE__)
 #define free(ptr) _free_trace(ptr, __FILE__, __LINE__)
+#endif /* N_TRACE_MEM */
 
-#endif
+#endif /* N_TRACE */
 
 #endif /* TRACE_H_ */

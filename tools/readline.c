@@ -27,6 +27,7 @@ static struct termios orig;
 struct history
 {
         char** lines;
+        char* buf;
         size_t len;
         size_t max;
 };
@@ -54,8 +55,10 @@ static struct history *history_create(void)
         history->max = HISTORY_MAX;
 
         history->lines = (char **) calloc(history->max, sizeof(char *));
+        history->buf = (char *) calloc(history->max, LINE_BUFF_MAX);
+
         for (size_t i = 0; i < history->max; i++)
-                history->lines[i] = (char *) calloc(LINE_BUFF_MAX, sizeof(char));
+                history->lines[i] = history->buf + (i * LINE_BUFF_MAX);
 
         return history;
 }
@@ -66,8 +69,9 @@ static struct history *history_copy(const struct history *orig)
         copy->len = orig->len;
         copy->max = orig->len;
 
+        memcpy(copy->buf, orig->buf, orig->max * LINE_BUFF_MAX);
         for (size_t i = 0; i < orig->len; i++)
-                memcpy(copy->lines[i], orig->lines[i], LINE_BUFF_MAX);
+                copy->lines[i] = copy->buf + (i * LINE_BUFF_MAX);
 
         return copy;
 }
@@ -78,8 +82,7 @@ static void history_free(struct history *history)
                 return;
 
         if (history->lines) {
-                for (size_t i = 0; i < history->max; i++)
-                        free(history->lines[i]);
+                free(history->buf);
                 free(history->lines);
         }
 
@@ -452,24 +455,24 @@ out:
         return NULL;
 }
 
-void add_history(const char *str)
+void add_history(const char *line)
 {
-        if (!str || !*str)
+        if (!line || !*line)
                 return;
 
         if (hist->len >= hist->max) {
                 free(hist->lines[0]);
                 memmove(hist->lines, hist->lines + 1, (hist->max - 1) * sizeof(char *));
-                hist->lines[hist->max - 1] = strdup(str);
+                strncpy(hist->lines[hist->max - 1], line, strlen(line));
         } else {
-                hist->lines[hist->len++] = strdup(str);
+                strncpy(hist->lines[hist->len++], line, strlen(line));
         }
 }
 
 const char **get_history(size_t *p_size)
 {
         *p_size = hist->len;
-        return (const char **) hist->lines;
+        return hist->lines;
 }
 
 void clear()
