@@ -20,7 +20,7 @@
 #include <signal.h>
 
 #define LINE_BUFF_MAX 16384
-#define HISTORY_MAX 256
+#define HISTORY_MAX 128
 
 static struct termios orig;
 
