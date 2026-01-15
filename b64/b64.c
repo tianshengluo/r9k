@@ -132,6 +132,9 @@ int main(int argc, char* argv[])
         ap = argparse_create("b64", "1.0");
         PANIC_IF(!ap, "error: argparse initialize failed");
 
+	argparse_add0(ap, NULL, "h", "help", "show this help message.", ap_callback_help, 0);
+	argparse_add0(ap, NULL, "version", NULL, "show current version.", ap_callback_version, 0);
+
         argparse_add0(ap, &e,   "e", NULL, "encode", encode, 0);
         argparse_add0(ap, &d,   "d", NULL, "decode", decode, 0);
         argparse_add0(ap, NULL, "u", NULL, "url safe", NULL, 0);

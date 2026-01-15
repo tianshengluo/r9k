@@ -57,6 +57,9 @@ int main(int argc, char *argv[])
         ap = argparse_create("clip", "1.0");
         PANIC_IF(!ap, "error: argparse initialize failed");
 
+        argparse_add0(ap, NULL, "h", "help", "show this help message.", ap_callback_help, 0);
+        argparse_add0(ap, NULL, "version", NULL, "show current version.", ap_callback_version, 0);
+
         argparse_add0(ap, NULL, "print", NULL, "read ontents in clipboard", print_callback, 0);
         argparse_add0(ap, NULL, "q", "quiet", "quiet write to clipboard", NULL, 0);
 

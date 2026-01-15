@@ -155,6 +155,13 @@ static int url_query(struct argparse *ap)
         exit(0);
 }
 
+static int subcmd_reg(struct argparse *ap)
+{
+        argparse_add0(ap, NULL, "h", "help", "show this help message.", ap_callback_help, 0);
+        argparse_add0(ap, NULL, "version", NULL, "show current version.", ap_callback_version, 0);
+        return 0;
+}
+
 int main(int argc, char* argv[])
 {
         struct argparse *ap;
@@ -162,9 +169,12 @@ int main(int argc, char* argv[])
         ap = argparse_create("url", "1.0");
         PANIC_IF(!ap, "argparse initialize failed");
 
-        argparse_cmd(ap, "encode", "encode url", NULL, url_encode);
-        argparse_cmd(ap, "decode", "decode url", NULL, url_decode);
-        argparse_cmd(ap, "qs", "parsing query parmaeters in url", NULL, url_query);
+        argparse_add0(ap, NULL, "h", "help", "show this help message.", ap_callback_help, 0);
+        argparse_add0(ap, NULL, "version", NULL, "show current version.", ap_callback_version, 0);
+
+        argparse_cmd(ap, "encode", "encode url", subcmd_reg, url_encode);
+        argparse_cmd(ap, "decode", "decode url", subcmd_reg, url_decode);
+        argparse_cmd(ap, "qs", "parsing arguments", subcmd_reg, url_query);
 
         /* global option */
         argparse_add0(ap, &no_pretty, NULL, "no-pretty", "not format", NULL, 0);
