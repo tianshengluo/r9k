@@ -8,7 +8,7 @@ INCLUDES  := -I../include -I../tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
 LIBS      := tools
-SUBDIRS   := strc url clip b64 calc rsh
+SUBDIRS   := strc url clip b64 calc rsh streq
 
 all: $(LIBS) $(SUBDIRS)
 

@@ -2,8 +2,8 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 Varketh Nockrath
  */
-#ifndef PANIC_H_
-#define PANIC_H_
+#ifndef CINAP_H_
+#define CINAP_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,4 +29,4 @@ static void _panic(const char *fmt, ...)
                         _panic(fmt, ##__VA_ARGS__);     \
         } while(0)
 
-#endif /* PANIC_H_ */
+#endif /* CINAP_H_ */
