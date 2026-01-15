@@ -111,6 +111,7 @@ struct option
 int _argparse_callback_help(struct argparse *ap, struct option *opt);
 int _argparse_callback_version(struct argparse *ap, struct option *opt);
 
+/* Internal callback function for help/version option. */
 #define ap_callback_help _argparse_callback_help
 #define ap_callback_version _argparse_callback_version
 
