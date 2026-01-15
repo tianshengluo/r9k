@@ -108,6 +108,12 @@ struct option
         const char** vals;              /* array of consumed values, in parse order */
 };
 
+int _argparse_callback_help(struct argparse *ap, struct option *opt);
+int _argparse_callback_version(struct argparse *ap, struct option *opt);
+
+#define ap_callback_help _argparse_callback_help
+#define ap_callback_version _argparse_callback_version
+
 /* If a result doesn't equal to 0 that mean error. */
 struct argparse *argparse_create(const char *name, const char *version);
 void argparse_destroy(struct argparse *ap);

@@ -114,10 +114,6 @@ struct argparse
         size_t hlen;
         size_t hcap;
 
-        /* builtin */
-        struct option *opt_h;
-        struct option *opt_v;
-
         /* id */
         uint32_t _mutual_id;
 };
@@ -552,9 +548,6 @@ struct argparse *argparse_create(const char *name, const char *version)
                 argparse_destroy(ap);
                 return NULL;
         }
-
-        argparse_add0(ap, &ap->opt_h, "h", "help", "show this help message.", _argparse_callback_help, 0);
-        argparse_add0(ap, &ap->opt_v, "version", NULL, "show current version.", _argparse_callback_version, 0);
 
         return ap;
 }

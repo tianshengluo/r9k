@@ -143,6 +143,9 @@ int main(int argc, char* argv[])
         ap = argparse_create("strc", "1.0");
         PANIC_IF(!ap, "argparse initialize failed");
 
+        argparse_add0(ap, NULL, "h", "help", "show this help message.", ap_callback_help, 0);
+        argparse_add0(ap, NULL, "version", NULL, "show current version.", ap_callback_version, 0);
+
         argparse_add0(ap, &c, "c", NULL, "count bytes.", NULL, 0);
         argparse_add0(ap, &m, "m", NULL, "count UTF-8 characters", NULL, 0);
         argparse_add0(ap, &l, "l", NULL, "count line.", NULL, 0);
