@@ -12,6 +12,20 @@
 #include "icp.h"
 #include "socket.h"
 
+#define MAX_CLIENT 128
+
+static int randc(void)
+{
+        int r;
+        int limit = RAND_MAX - (RAND_MAX % MAX_CLIENT);
+
+        do {
+                r = rand();
+        } while (r >= limit);
+
+        return r % MAX_CLIENT;
+}
+
 static void client_exit(int fd)
 {
         close(fd);
@@ -23,18 +37,24 @@ int client_start(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);
 
-        int   fd;
+        int   fds[MAX_CLIENT];
+
         char *line = NULL;
         struct icp ic;
         ssize_t n;
 
-        fd = socket_connect("127.0.0.1", 26214);
-        if (fd < 0)
-                exit(1);
+        for (int i = 0; i < MAX_CLIENT; i++) {
+                fds[i] = socket_connect("127.0.0.1", 26214);
+                if (fds[i] < 0)
+                        exit(1);
+        }
 
         clear();
 
         while (1) {
+                int fd = fds[randc()];
+                printf("use fd: %d\n", fd);
+
                 line = readline("gateway > ");
                 if (line == NULL)
                         continue;
