@@ -9,6 +9,7 @@
 
 #include "icp.h"
 #include "socket.h"
+#include "client.h"
 
 #define PORT       26214
 #define MAX_EVENTS 65535
@@ -67,6 +68,8 @@ static int init_gateway_ctx(struct gateway_ctx *ctx)
                 perror("socket_start(%d) failed");
                 return -1;
         }
+
+        set_nonblock(ctx->listen_fd);
 
         ctx->kq = kqueue();
         if (ctx->kq < 0) {
@@ -147,6 +150,7 @@ static void gw_event_read(struct gateway_ctx *ctx, struct gwsockbind *bind)
                 }
 
                 bind->len += n;
+                printf("len: %zu\n", bind->len);
 
                 while (bind->len >= ICP_SIZE) {
                         switch (icp_packet(bind->stagbuf, &bind->len)) {
@@ -159,6 +163,7 @@ static void gw_event_read(struct gateway_ctx *ctx, struct gwsockbind *bind)
                                 default:
                                         continue;
                         }
+                        break;
                 }
         }
 
@@ -192,6 +197,9 @@ __attr_noreturn
 int main(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);
+
+        if (argc > 1 && strcmp(argv[1], "-c") == 0)
+                client_start(argc, argv);
 
         struct gateway_ctx ctx;
         memset(&ctx, 0, sizeof(struct gateway_ctx));

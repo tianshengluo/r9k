@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <r9k/trace.h>
 
 #define INIT_VEC_CAP 8
 #define INIT_VAL_CAP 1
