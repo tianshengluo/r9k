@@ -150,7 +150,6 @@ static void gw_event_read(struct gateway_ctx *ctx, struct gwsockbind *bind)
                 }
 
                 bind->len += n;
-                printf("len: %zu\n", bind->len);
 
                 while (bind->len >= ICP_SIZE) {
                         switch (icp_packet(bind->stagbuf, &bind->len)) {

@@ -77,7 +77,7 @@ int socket_accept(int fd, struct sockaddr_in *addr)
                         socklen_t len = sizeof(struct sockaddr_in);
 
                         cli = accept(fd,
-                                     (struct sockaddr *) &addr,
+                                     (struct sockaddr *) addr,
                                      &len);
                 } else {
                         cli = accept(fd, NULL, NULL);
