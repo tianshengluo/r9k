@@ -7,6 +7,8 @@
 
 #include <string.h>
 
+#define streq(a, b) (strcmp(a, b) == 0)
+
 int is_str_blank(const char *str);
 char *trim_start(char *str);
 char *trim_end(char *str);

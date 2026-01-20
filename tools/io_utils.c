@@ -7,7 +7,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <r9k/trace.h>
 
 typedef ssize_t (*io_rw_t)(int fd, void *buf, size_t count);
 

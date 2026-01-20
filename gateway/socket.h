@@ -16,6 +16,7 @@
 #define is_eagain() (errno == EAGAIN || errno == EWOULDBLOCK)
 
 int socket_start(int port);
+int socket_connect(const char *host, int port);
 int socket_accept(int fd, struct sockaddr_in *addr);
 int set_nonblock(int fd);
 

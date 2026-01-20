@@ -43,6 +43,31 @@ int socket_start(int port)
         return fd;
 }
 
+int socket_connect(const char *host, int port)
+{
+        int fd;
+        struct sockaddr_in addr;
+
+        fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (fd < 0) {
+                perror("socket() failed");
+                return -1;
+        }
+
+        memset(&addr, 0, sizeof(struct sockaddr_in));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = inet_addr(host);
+        addr.sin_port = htons(port);
+
+        if (connect(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0) {
+                perror("connect() failed");
+                close(fd);
+                return -1;
+        }
+
+        return fd;
+}
+
 int socket_accept(int fd, struct sockaddr_in *addr)
 {
         int cli;
