@@ -2,215 +2,165 @@
  * SPDX-License-Identifier: MIT
  * Copyright (c) 2025
  */
-#include <string.h>
+#include "gateway.h"
+
+#include <stdio.h>
 #include <unistd.h>
-#include <sys/event.h>
+#include <sys/epoll.h>
+#include <time.h>
+#include <r9k/string.h>
 #include <r9k/panic.h>
 
-#include "icp.h"
 #include "socket.h"
-#include "client.h"
+#include "icp.h"
+#include "ev_poll.h"
 
-#define PORT       26214
-#define MAX_EVENTS 65535
-#define MAX_ACCPET 128 /* accept max once. */
+struct connection {
+        int      fd;
+        time_t   heartbeat;
+        uint32_t cap;
+        uint32_t len;
+        char    *stagbuf;
+};
 
-struct gateway_ctx {
+struct gateway {
         int listen_fd;
-        int kq;
-        int nev;
-        struct kevent events[MAX_EVENTS];
+        int epfd;
+        struct config *cnf;
+        struct connection *conns;
 };
 
-struct gwsockbind {
-        int    fd;
-        size_t cap;
-        size_t len;
-        char  *stagbuf;
-};
-
-static struct gwsockbind *gw_sock_bind(int fd)
+static void gateway_init(struct gateway *ctx, struct config *cnf)
 {
-        struct gwsockbind *bind;
+        memset(ctx, 0, sizeof(struct gateway));
 
-        bind = calloc(1, sizeof(struct gwsockbind));
-        if (!bind)
+        ctx->listen_fd = -1;
+        ctx->epfd  = -1;
+        ctx->cnf = cnf;
+
+        ctx->conns = calloc(cnf->limit, sizeof(struct connection *));
+
+        if (!ctx->conns) {
+                perror("calloc");
+                exit(1);
+        }
+}
+
+static void gateway_destroy(struct gateway *ctx)
+{
+        if (ctx->listen_fd >= 0)
+                close(ctx->listen_fd);
+
+        if (ctx->epfd >= 0)
+                close(ctx->epfd);
+
+        if (ctx->conns)
+                free(ctx->conns);
+}
+
+static struct connection *connection_create(int fd)
+{
+        struct connection *conn;
+
+        conn = calloc(1, sizeof(struct connection));
+
+        if (!conn)
                 return NULL;
 
-        bind->fd  = fd;
-        bind->cap = MAX_STAGING;
+        conn->fd        = fd;
+        conn->heartbeat = time(NULL);
+        conn->cap       = MAX_STAGING;
+        conn->stagbuf   = malloc(MAX_STAGING);
 
-        bind->stagbuf = malloc(bind->cap);
-        if (!bind->stagbuf) {
-                free(bind);
+        if (!conn->stagbuf) {
+                free(conn);
                 return NULL;
         }
 
-        return bind;
+        return conn;
 }
 
-static void gw_sock_close(struct gwsockbind *bind)
+static void connection_destroy(struct connection *conn)
 {
-        if (!bind)
-                return;
 
-        close(bind->fd);
-        free(bind->stagbuf);
-        free(bind);
 }
 
-static int init_gateway_ctx(struct gateway_ctx *ctx)
-{
-        struct kevent change;
-
-        ctx->listen_fd = socket_start(PORT);
-        if (ctx->listen_fd < 0) {
-                perror("socket_start(%d) failed");
-                return -1;
-        }
-
-        set_nonblock(ctx->listen_fd);
-
-        ctx->kq = kqueue();
-        if (ctx->kq < 0) {
-                close(ctx->listen_fd);
-                perror("kqueue() failed");
-                return -1;
-        }
-
-        EV_SET(&change, ctx->listen_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-        if (kevent(ctx->kq, &change, 1, NULL, 0, NULL) < 0) {
-                perror("kevent() failed");
-                close(ctx->listen_fd);
-                close(ctx->kq);
-                return -1;
-        }
-
-        printf("gateway server start listening in %d...\n", PORT);
-
-        return 0;
-}
-
-static int gw_poll_events(struct gateway_ctx *ctx)
-{
-        ctx->nev = kevent(ctx->kq, 0, 0, ctx->events, MAX_EVENTS, NULL);
-        if (ctx->nev < 0)
-                return -1;
-
-        return ctx->nev;
-}
-
-/* listen_fd trigger always by LT mode */
-static void gw_event_add(struct gateway_ctx *ctx)
+static void gateway_new_connection(struct gateway *ctx, int fd)
 {
         int cli;
-        struct gwsockbind *bind;
-        struct kevent change;
+        struct connection *conn;
 
-        for (int i = 0; i < MAX_ACCPET; i++) {
-                cli = socket_accept(ctx->listen_fd, NULL);
+        for (int i = 0; i < ctx->cnf->max_acp; i++) {
+                cli = socket_accept(fd, NULL);
 
-                if (cli < 0) {
-                        if (is_eagain())
-                                break;
-                }
+                if (cli < 0)
+                        break;
 
                 set_nonblock(cli);
-                bind = gw_sock_bind(cli);
 
-                EV_SET(&change, cli, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, bind);
-                if (kevent(ctx->kq, &change, 1, NULL, 0, NULL) < 0) {
-                        perror("kevent(EV_ADD) failed");
-                        gw_sock_close(bind);
+                if (ev_add(ctx->epfd, cli, EPOLLIN | EPOLLET, conn) < 0) {
+                        close(cli);
+                        free(conn);
                         continue;
                 }
         }
 }
 
-static void gw_event_read(struct gateway_ctx *ctx, struct gwsockbind *bind)
+static void gateway_read(struct connection *conn)
 {
-        __attr_ignore(ctx);
-
-        ssize_t n;
-
-        while (1) {
-                n = recv(bind->fd,
-                         bind->stagbuf + bind->len,
-                         bind->cap - bind->len,
-                         0);
-
-                if (n == 0)
-                        goto sock_err;
-
-                if (n < 0) {
-                        RETRY_ONCE_ENTR();
-
-                        if (is_eagain())
-                                return;
-                }
-
-                bind->len += n;
-
-                while (bind->len >= ICP_SIZE) {
-                        switch (icp_packet(bind->stagbuf, &bind->len)) {
-                                case ICP_ERROR_BAD_MAGIC:
-                                case ICP_ERROR_BAD_LENGTH:
-                                case ICP_ERROR_BAD_VERSION:
-                                        goto sock_err;
-                                case ICP_ERROR_INCOMPLETE:
-                                        break;
-                                default:
-                                        continue;
-                        }
-                        break;
-                }
-        }
-
-sock_err:
-        gw_sock_close(bind);
+        conn->heartbeat = time(NULL);
 }
 
-static void gw_event_loop(struct gateway_ctx *ctx)
+static void gateway_event_loop(struct gateway *ctx)
 {
-        int fd;
-        struct kevent *event;
+        int n;
+        struct epoll_event *evt;
+        struct epoll_event events[ctx->cnf->max_evt];
 
-        if (ctx->nev <= 0)
-                return;
+        n = epoll_wait(ctx->epfd, events, (int) ctx->cnf->max_evt, -1);
 
-        for (int i = 0; i < ctx->nev; i++) {
-                event = &ctx->events[i];
-                fd = (int) event->ident;
+        for (int i = 0; i < n; i++) {
+                evt = &events[i];
 
-                if (fd == ctx->listen_fd) {
-                        gw_event_add(ctx);
+                if (evt->data.fd == ctx->listen_fd) {
+                        gateway_new_connection(ctx, evt->data.fd);
                         continue;
                 }
 
-                /* read */
-                gw_event_read(ctx, (struct gwsockbind *) event->udata);
+                gateway_read((struct connection *) evt->data.ptr);
         }
 }
 
 __attr_noreturn
-int main(int argc, char **argv)
+void gateway_start(struct config *cnf)
 {
-        __attr_ignore2(argc, argv);
+        struct gateway ctx;
 
-        if (argc > 1 && strcmp(argv[1], "-c") == 0)
-                client_start(argc, argv);
+        gateway_init(&ctx, cnf);
 
-        struct gateway_ctx ctx;
-        memset(&ctx, 0, sizeof(struct gateway_ctx));
+        ctx.listen_fd = socket_start(cnf->port);
 
-        if (init_gateway_ctx(&ctx) != 0)
+        if (ctx.listen_fd < 0) {
+                perror("socket_start");
                 exit(1);
-
-        while (1) {
-                if (gw_poll_events(&ctx) < 0)
-                        continue;
-
-                gw_event_loop(&ctx);
         }
+
+        set_nonblock(ctx.listen_fd);
+
+        ctx.epfd = epoll_create1(EPOLL_CLOEXEC);
+
+        if (ctx.epfd < 0) {
+                perror("epoll_create1 failed");
+                goto err;
+        }
+
+        if (ev_add(ctx.epfd, ctx.listen_fd, EPOLLIN, NULL) != 0)
+                goto err;
+
+        while (1)
+                gateway_event_loop(&ctx);
+
+err:
+        gateway_destroy(&ctx);
 }
 

@@ -4,6 +4,7 @@
  */
 #include <r9k/io_utils.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
