@@ -25,6 +25,7 @@
 #define MD5_H_
 
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef struct {
         uint32_t a, b, c, d;
