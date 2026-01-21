@@ -6,7 +6,6 @@
 #define SOCKET_H_
 
 #include <arpa/inet.h>
-#include <sys/fcntl.h>
 #include <errno.h>
 
 #define RETRY_ONCE_ENTR()   \
