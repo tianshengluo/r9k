@@ -29,4 +29,6 @@ static void _panic(const char *fmt, ...)
                         _panic(fmt, ##__VA_ARGS__);     \
         } while(0)
 
+#define FATAL() exit(1)
+
 #endif /* CINAP_H_ */

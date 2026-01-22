@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <r9k/argparse.h>
 #include <r9k/string.h>
-#include <r9k/panic.h>
+#include <r9k/error.h>
 
 #define BUFSIZE 262144 /* 256kb */
 

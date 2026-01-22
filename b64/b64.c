@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <r9k/argparse.h>
-#include <r9k/panic.h>
+#include <r9k/error.h>
 #include <r9k/io_utils.h>
 #include <r9k/string.h>
 

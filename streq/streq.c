@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <r9k/panic.h>
+#include <r9k/error.h>
 
 int main(int argc, char *argv[])
 {

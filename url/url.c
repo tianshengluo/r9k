@@ -9,7 +9,7 @@
 #include <ctype.h>
 #include <r9k/argparse.h>
 #include <r9k/string.h>
-#include <r9k/panic.h>
+#include <r9k/error.h>
 #include <r9k/compiler_attrs.h>
 
 static struct option *no_pretty;
