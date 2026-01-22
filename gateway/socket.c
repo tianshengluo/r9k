@@ -34,7 +34,7 @@ int socket_start(int port)
                 return -1;
         }
 
-        if (listen(fd, 65535) < 0) {
+        if (listen(fd, 4096) < 0) {
                 perror("listen failed");
                 close(fd);
                 return -1;
