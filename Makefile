@@ -8,7 +8,13 @@ INCLUDES  := -I../include -I../tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
 LIBS      := tools
-SUBDIRS   := strc url clip b64 calc rsh streq misc gateway
+SUBDIRS   := strc url clip b64 calc rsh streq misc
+
+UNAME     := $(shell uname -s)
+
+ifeq ($(UNAME), Linux)
+	SUBDIRS := $(SUBDIRS) gateway
+endif
 
 all: $(LIBS) $(SUBDIRS)
 

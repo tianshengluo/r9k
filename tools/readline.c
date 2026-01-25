@@ -10,6 +10,9 @@
  * created: 2025/10/24
  */
 #include <r9k/readline.h>
+#ifdef __linux__
+#define __USE_XOPEN
+#endif /* __linux__ */
 #include <wchar.h>
 #include <locale.h>
 #include <stdio.h>
