@@ -10,32 +10,52 @@
 #include <errno.h>
 #include <fcntl.h>
 
-int socket_start(int port)
+int tcp_create_listener(int port)
 {
-        int fd;
-        int opt = 1;
+        int fd, opt = 1;
         struct sockaddr_in addr;
 
-        fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (fd < 0) {
-                perror("socket create failed");
+        fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+        if (fd < 0)
                 return -1;
-        }
 
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-        memset(&addr, 0, sizeof(struct sockaddr_in));
+
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
         addr.sin_port = htons(port);
 
-        if (bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in)) < 0) {
-                perror("bind failed");
-                close(fd);
-                return -1;
-        }
+        if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+                goto err;
 
-        if (listen(fd, 4096) < 0) {
-                perror("listen failed");
+        if (listen(fd, SOMAXCONN) < 0)
+                goto err;
+
+        return fd;
+
+err:
+        close(fd);
+        return -1;
+}
+
+
+int udp_create_bound_socket(int port)
+{
+        int fd, opt = 1;
+        struct sockaddr_in addr;
+
+        fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+        if (fd < 0)
+                return -1;
+
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
+
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr.sin_port = htons(port);
+
+        if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
                 close(fd);
                 return -1;
         }
@@ -43,7 +63,7 @@ int socket_start(int port)
         return fd;
 }
 
-int socket_connect(const char *host, int port)
+int tcp_connect(const char *host, int port)
 {
         int fd;
         struct sockaddr_in addr;
@@ -68,7 +88,7 @@ int socket_connect(const char *host, int port)
         return fd;
 }
 
-int socket_accept(int fd, struct sockaddr_in *addr)
+int tcp_accept(int fd, struct sockaddr_in *addr)
 {
         int cli;
 
@@ -83,8 +103,13 @@ int socket_accept(int fd, struct sockaddr_in *addr)
                         cli = accept(fd, NULL, NULL);
                 }
 
-                if (cli >= 0)
+                if (cli >= 0) {
+                        if (set_nonblock(cli) <= 0) {
+                                close(cli);
+                                return -1;
+                        }
                         return cli;
+                }
 
                 RETRY_ONCE_ENTR();
 

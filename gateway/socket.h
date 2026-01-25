@@ -14,9 +14,10 @@
 
 #define is_eagain() (errno == EAGAIN || errno == EWOULDBLOCK)
 
-int socket_start(int port);
-int socket_connect(const char *host, int port);
-int socket_accept(int fd, struct sockaddr_in *addr);
+int tcp_create_listener(int port);
+int udp_create_bound_socket(int port);
+int tcp_connecct(const char *host, int port);
+int tcp_accept(int fd, struct sockaddr_in *addr);
 int set_nonblock(int fd);
 
 #endif /* SOCKET_H_ */
