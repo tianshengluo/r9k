@@ -30,4 +30,6 @@ struct eim {
         uint32_t len;           /* body len */
 } __attribute__((packed));
 
+#define EIM_SIZE sizeof(struct eim)
+
 #endif /* EIM_H_ */
