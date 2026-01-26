@@ -1,6 +1,6 @@
 # Makefile
 CC        := gcc
-CFLAGS    := -Werror -Wall -Wextra -O3 -std=c17 -DN_TRACE
+CFLAGS    := -Werror -Wall -Wextra -O3 -std=c17
 BUILDDIR  := ../build
 LIBDIR    := $(BUILDDIR)/lib
 BINDIR    := $(BUILDDIR)/bin
@@ -9,11 +9,13 @@ CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
 LIBS      := tools
 SUBDIRS   := strc url clip b64 calc rsh streq misc
+MAKEFLAGS += --no-print-directory
 
 UNAME     := $(shell uname -s)
 
 ifeq ($(UNAME), Linux)
 	SUBDIRS := $(SUBDIRS) gateway
+	CFLAGS  := $(CFLAGS) -pthread -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L
 endif
 
 all: $(LIBS) $(SUBDIRS)

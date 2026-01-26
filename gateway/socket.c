@@ -121,6 +121,14 @@ int tcp_accept(int fd, struct sockaddr_in *addr)
         }
 }
 
+int isbadf(int fd)
+{
+        if (fcntl(fd, F_GETFD, 0) < 0)
+                if (errno == EBADF)
+                        return 1;
+        return 0;
+}
+
 int set_nonblock(int fd)
 {
         int flags = fcntl(fd, F_GETFL, 0);

@@ -7,12 +7,12 @@
 #ifndef EIM_H_
 #define EIM_H_
 
-#include <stdint.h>
-#include <arpa/inet.h>
+#include <stddef.h>
+#include "socket.h"
 
-// #define EIM_MAKE_VERSION(major, minor, patch) \
-//         (((major) << 24) | ((minor) << 16) | (patch))
-//
+/* #define EIM_MAKE_VERSION(major, minor, patch) \
+        (((major) << 24) | ((minor) << 16) | (patch)) */
+
 // #define EIM_VERSION_1_0 (EIM_MAKE_VERSION(1, 0, 0))
 
 #define EIM_MAGIC   (0x5CA1AB1E)
@@ -30,6 +30,7 @@ typedef enum {
 typedef enum {
         EIM_TYPE_MESSAGE = 0,
         EIM_TYPE_MSG_ACK = 1,
+        EIM_TYPE_MAX     = 16,
 } eim_type_t;
 
 struct eim {
@@ -42,23 +43,54 @@ struct eim {
         uint64_t to;            /* message receiver */
         uint64_t time;          /* message send time */
         uint32_t len;           /* body len */
+        char    *data;          /* data */
 } __attribute__((packed));
 
-#define EIM_SIZE sizeof(struct eim)
-#define EIM_ACK_SIZE offsetof(struct eim, mid)
+#define EIM_SIZE offsetof(struct eim, data)
+#define EIM_ACK_SIZE offsetof(struct eim, sid)
 
-static inline eim_error_t eim(uint8_t *rb, size_t size, size_t *out_size, struct eim *p_eim)
+static inline eim_error_t eimrbvalid(struct eim *eim, size_t rb_size)
 {
-        struct eim *eim = (struct eim *) rb;
-
-        eim->magic = ntohl(eim->magic);
-
-        if (eim->magic != EIM_MAGIC)
+        if (ntohl(eim->magic) != EIM_MAGIC)
                 return EIM_ERROR_MAGIC;
 
-        *out_size = EIM_SIZE;
+        if (ntohs(eim->version) != EIM_VERSION)
+                return EIM_ERROR_VERSION;
+
+        if (ntohs(eim->type) > EIM_TYPE_MAX)
+                return EIM_ERROR_TYPE;
+
+        if (ntohl(eim->len) > rb_size - EIM_SIZE)
+                return EIM_ERROR_INCOMPLETE;
 
         return EIM_OK;
+}
+
+static inline ssize_t eim(uint8_t *rb, size_t size, struct eim **p_eim)
+{
+        if (size < EIM_SIZE)
+                return EIM_ERROR_INCOMPLETE;
+
+        eim_error_t error;
+        struct eim *eim = (struct eim *) rb;
+
+        if ((error = eimrbvalid(eim, size)) != EIM_OK)
+                return error;
+
+        eim->magic = ntohl(eim->magic);
+        eim->mid = ntohll(eim->mid);
+        eim->sid = ntohll(eim->sid);
+        eim->from = ntohll(eim->from);
+        eim->to = ntohll(eim->to);
+        eim->time = ntohll(eim->time);
+        eim->len = ntohl(eim->len);
+
+        eim->data = (char *) (rb + EIM_SIZE);
+        eim->data[eim->len] = '\0';
+
+        *p_eim = eim;
+
+        return EIM_SIZE + eim->len;
 }
 
 static inline void ack(struct eim *p_eim)

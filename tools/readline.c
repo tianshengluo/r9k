@@ -10,9 +10,6 @@
  * created: 2025/10/24
  */
 #include <r9k/readline.h>
-#ifdef __linux__
-#define __USE_XOPEN
-#endif /* __linux__ */
 #include <wchar.h>
 #include <locale.h>
 #include <stdio.h>
@@ -22,7 +19,7 @@
 #include <string.h>
 #include <signal.h>
 
-#define LINE_BUFF_MAX 16384
+#define LINE_BUFF_MAX 4096
 #define HISTORY_MAX 128
 
 static struct termios orig;
@@ -466,9 +463,11 @@ void add_history(const char *line)
         if (hist->len >= hist->max) {
                 free(hist->lines[0]);
                 memmove(hist->lines, hist->lines + 1, (hist->max - 1) * sizeof(char *));
-                strncpy(hist->lines[hist->max - 1], line, strlen(line));
+                // strncpy(hist->lines[hist->max - 1], line, strlen(line));
+                snprintf(hist->lines[hist->max - 1], LINE_BUFF_MAX, "%s", line);
         } else {
-                strncpy(hist->lines[hist->len++], line, strlen(line));
+                // strncpy(hist->lines[hist->len++], line, strlen(line));
+                snprintf(hist->lines[hist->len++], LINE_BUFF_MAX, "%s", line);
         }
 }
 

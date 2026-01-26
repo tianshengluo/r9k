@@ -5,71 +5,100 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/epoll.h>
 #include <r9k/compiler_attrs.h>
 
+#include "reactor.h"
 #include "log.h"
-#include "socket.h"
-#include "conn.h"
 #include "eim.h"
-#include "server.h"
 
-static void process_eim(struct eim *proto)
+#define PORT 26214
+
+static ssize_t eim_parse_proto(stagbuf_t *rb)
 {
+        if (rb->len < EIM_SIZE)
+                return EIM_ERROR_INCOMPLETE;
 
+        ssize_t size;
+        struct eim *proto;
+
+        size = eim(rb->buf, rb->len, &proto);
+
+        if (size <= 0)
+                return size;
+
+        logger_info("EIM receiver from client message: %s\n", proto->data);
+
+        return size;
 }
 
-static void read_event(struct connection *conn)
+static void on_event_read(connection_t *conn)
 {
-        if (connection_read(conn) < 0)
-                return;
+        stagbuf_t *rb = &conn->rb;
 
-        size_t size;
-        eim_error_t r;
-        struct eim proto;
-        struct stagbuf *rb = &conn->rb;
+        while (1) {
+                ssize_t n = recv(conn->fd,
+                                 rb->buf + rb->len,
+                                 rb->cap - rb->len,
+                                 0);
 
-        while (rb->len >= EIM_SIZE) {
-                r = eim(rb->buf, rb->len, &size, &proto);
+                if (n < 0) {
+                        RETRY_ONCE_ENTR();
 
-                switch (r) {
-                        case EIM_ERROR_INCOMPLETE:
-                                break;
-                        case EIM_OK:
-                                process_eim(&proto);
-                                rb->len -= size;
-                                continue;
-                        default:
-                                connection_destroy(conn);
+                        if (is_eagain())
                                 return;
                 }
 
-                break;
+                if (n == 0) {
+                        connection_destroy(conn);
+                        return;
+                }
+
+                rb->len += n;
+
+                /* parse proto */
+                n = eim_parse_proto(rb);
+
+                if (n < 0) {
+                        if (n == EIM_ERROR_INCOMPLETE)
+                                continue;
+                        connection_destroy(conn);
+                        return;
+                }
         }
 }
 
-static void write_event(struct connection *conn)
+static void on_event_write(connection_t *conn)
 {
-
+        __attr_ignore(conn);
 }
 
-__attr_noreturn
 int main(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);
 
-        struct server *srv;
+        int listen_fd;
+        reactor_t *rc;
 
-        srv = server_start(26214);
+        listen_fd = tcp_create_listener(PORT);
 
-        if (!srv) {
-                logger_error("server start failed, cause: %s\n", syserr);
+        if (listen_fd < 0) {
+                logger_error("listen fd open failed, cause: %s\n", syserr);
                 exit(1);
         }
 
-        server_set_read_event(srv, read_event);
-        server_set_write_event(srv, write_event);
+        rc = rc_create(listen_fd, 1024);
+
+        if (!rc) {
+                logger_error("reactor create failed, cause: %s\n", syserr);
+                close(listen_fd);
+                exit(1);
+        }
+
+        logger_info("server start successful, fd=%d, listening port %d\n", listen_fd, PORT);
+
+        rc_set_read_callback(rc, on_event_read);
+        rc_set_write_callback(rc, on_event_write);
 
         while (1)
-                server_poll_events(srv);
+                rc_poll_events(rc);
 }
