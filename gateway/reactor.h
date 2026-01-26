@@ -33,6 +33,7 @@ struct connection {
         stagbuf_t               rb;
         stagbuf_t               wb0;
         stagbuf_t               wb1;
+        uint32_t                flags;
 };
 
 struct reactor {
@@ -42,19 +43,15 @@ struct reactor {
         struct epoll_event     *event_array;
         int                     event_count;
         fn_on_event             on_event_read;
-        fn_on_event             on_event_write;
 };
 
 reactor_t *rc_create(int listen_fd, size_t maxevents);
 void rc_destroy(reactor_t *rc);
 void rc_set_read_callback(reactor_t *rc, fn_on_event on_event_read);
-void rc_set_write_callback(reactor_t *rc, fn_on_event on_event_write);
-int  rc_event_add(reactor_t *rc, int fd, uint32_t events, void *userdata);
-int  rc_event_mod(reactor_t *rc, int fd, uint32_t events, void *userdata);
-int  rc_event_del(reactor_t *rc, int fd);
 void rc_poll_events(reactor_t *rc);
 
 connection_t *connection_create(reactor_t *rc, int fd, size_t maxrb, size_t maxwb0, size_t maxwb1);
 void connection_destroy(connection_t *conn);
+void connection_write(connection_t *conn, stagbuf_t *wb, const void *data, size_t size);
 
 #endif /* REACTOR_H_ */

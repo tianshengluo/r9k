@@ -10,7 +10,7 @@
 #include <time.h>
 #include <string.h>
 
-static eim_error_t eimrbvalid(eim_t *eim, size_t rb_size)
+static eim_error_t eimvalid(eim_t *eim, size_t rb_size)
 {
         if (ntohl(eim->magic) != EIM_MAGIC)
                 return EIM_ERROR_MAGIC;
@@ -35,7 +35,7 @@ ssize_t eim(uint8_t *rb, size_t size, eim_t **p_eim)
         eim_error_t error;
         eim_t *eim = (eim_t *) rb;
 
-        if ((error = eimrbvalid(eim, size)) != EIM_OK)
+        if ((error = eimvalid(eim, size)) != EIM_OK)
                 return error;
 
         eim->magic = ntohl(eim->magic);
@@ -64,7 +64,9 @@ void eimb(const char *message, eim_t *eim)
         eim->len = htonl(strlen(message));
 }
 
-void ack(eim_t *p_eim)
+void ack(eim_t *eim)
 {
-        p_eim->magic   = htonl(EIM_MAGIC);
+        eim->magic = htonl(EIM_MAGIC);
+        eim->version = EIM_VERSION;
+        eim->type = EIM_TYPE_MESSAGE;
 }

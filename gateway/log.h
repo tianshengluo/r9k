@@ -9,6 +9,7 @@ void _logger_record(const char *level, const char *fmt, ...); // NOLINT(*-reserv
 #define logger_info(fmt, ...)  _logger_record("INFO", fmt, ##__VA_ARGS__)
 #define logger_warn(fmt, ...)  _logger_record("WARN", fmt, ##__VA_ARGS__)
 #define logger_error(fmt, ...) _logger_record("ERROR", fmt, ##__VA_ARGS__)
+#define logger_fatal(fmt, ...) _logger_record("FATAL", fmt, ##__VA_ARGS__)
 
 #ifndef N_DEBUG
 #define logger_debug(fmt, ...) _logger_record("DEBUG", fmt, ##__VA_ARGS__)

@@ -48,12 +48,12 @@ typedef struct __attribute__((packed)) eim {
 typedef struct eim eim_t;
 
 #define EIM_SIZE sizeof(eim_t)
-#define EIM_ACK_SIZE offsetof(eim_t, sid)
+#define ACK_SIZE offsetof(eim_t, sid)
 
-#define is_eim(n) (n >= EIM_SIZE)
+#define is_eim_ready(n) (n >= EIM_SIZE)
 
 ssize_t eim(uint8_t *rb, size_t size, eim_t **p_eim);
 void eimb(const char *message, eim_t *eim);
-void ack(eim_t *p_eim);
+void ack(eim_t *eim);
 
 #endif /* EIM_H_ */

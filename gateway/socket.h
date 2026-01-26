@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <endian.h>
 
-#define RETRY_ONCE_ENTR()   \
+#define RETRY_IF_EINTR()    \
         if (errno == EINTR) \
                 continue
 

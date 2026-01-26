@@ -111,7 +111,7 @@ int tcp_accept(int fd, struct sockaddr_in *addr)
                         return cli;
                 }
 
-                RETRY_ONCE_ENTR();
+                RETRY_IF_EINTR();
 
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                         return -1;
