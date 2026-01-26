@@ -16,7 +16,7 @@
 
 int tcp_create_listener(int port);
 int udp_create_bound_socket(int port);
-int tcp_connecct(const char *host, int port);
+int tcp_connect(const char *host, int port);
 int tcp_accept(int fd, struct sockaddr_in *addr);
 int set_nonblock(int fd);
 
