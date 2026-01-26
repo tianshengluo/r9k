@@ -8,7 +8,9 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <r9k/compiler_attrs.h>
+#include <string.h>
+
+#include "log.h"
 
 #define MAX_RB  (1024 * 4)
 #define MAX_WB0 (1024 * 4)
@@ -30,6 +32,41 @@ static uint32_t to_epoll_events(uint32_t events)
         return ep_events | EPOLLHUP | EPOLLRDHUP | EPOLLERR;
 }
 
+static int rc_event_add(reactor_t *rc, int fd, uint32_t events, connection_t *conn)
+{
+        struct epoll_event ev = {
+                .events = to_epoll_events(events),
+                .data.fd = fd,
+        };
+
+        if (conn) {
+                ev.data.ptr = conn;
+                conn->flags = events;
+        }
+
+        return epoll_ctl(rc->epfd, EPOLL_CTL_ADD, fd, &ev);
+}
+
+static int rc_event_mod(reactor_t *rc, int fd, uint32_t events, connection_t *conn)
+{
+        struct epoll_event ev = {
+                .events = to_epoll_events(events),
+                .data.fd = fd,
+        };
+
+        if (conn) {
+                ev.data.ptr = conn;
+                conn->flags = events;
+        }
+
+        return epoll_ctl(rc->epfd, EPOLL_CTL_MOD, fd, &ev);
+}
+
+static int rc_event_del(reactor_t *rc, int fd)
+{
+        return epoll_ctl(rc->epfd, EPOLL_CTL_DEL, fd, NULL);
+}
+
 static void rc_accept_connection(reactor_t *rc)
 {
         int cli;
@@ -39,10 +76,20 @@ static void rc_accept_connection(reactor_t *rc)
                 cli = tcp_accept(rc->listen_fd, NULL);
 
                 if (cli < 0) {
-                        RETRY_ONCE_ENTR();
+                        int err = errno;
+
+                        RETRY_IF_EINTR();
 
                         if (is_eagain())
                                 break;
+
+                        logger_error("accept failed on listen fd: %d, errno=%d (%s)\n",
+                                     rc->listen_fd, err, strerror(err));
+
+                        if (err == EBADF || err == EINVAL || err == ENOTSOCK) {
+                                logger_fatal("listen socket invalid, stopping acceptor");
+                                _exit(1);
+                        }
                 }
 
                 conn = connection_create(rc, cli, MAX_RB, MAX_WB0, MAX_WB1);
@@ -55,6 +102,57 @@ static void rc_accept_connection(reactor_t *rc)
                 if (rc_event_add(rc, cli, RC_READ | RC_ET, conn) < 0)
                         connection_destroy(conn);
         }
+}
+
+static int rc_buffer_write(connection_t *conn, stagbuf_t *wb)
+{
+        if (wb->len == 0)
+                return 0;
+
+        ssize_t nwrite = 0;
+
+        while (nwrite < wb->len) {
+                ssize_t n = send(conn->fd,
+                                 wb->buf + nwrite,
+                                 wb->len - nwrite,
+                                 0);
+
+                if (n == 0)
+                        return -1;
+
+                if (n < 0) {
+                        RETRY_IF_EINTR();
+
+                        if (is_eagain())
+                                return 0;
+
+                        return -1;
+                }
+
+                nwrite += n;
+                wb->len -= n;
+        }
+
+        return 0;
+}
+
+static void rc_on_event_write(connection_t *conn)
+{
+        if (rc_buffer_write(conn, &conn->wb0) != 0)
+                goto close;
+
+        if (rc_buffer_write(conn, &conn->wb1) != 0)
+                goto close;
+
+        if (conn->wb0.len == 0 && conn->wb1.len == 0) {
+                if (rc_event_mod(conn->rc, conn->fd, RC_READ | RC_ET, conn) < 0)
+                        goto close;
+        }
+
+        return;
+
+close:
+        connection_destroy(conn);
 }
 
 static void rc_events_dispatch(reactor_t *rc)
@@ -78,7 +176,7 @@ static void rc_events_dispatch(reactor_t *rc)
                         rc->on_event_read((connection_t *) curev->data.ptr);
 
                 if (curev->events & EPOLLOUT)
-                        rc->on_event_write((connection_t *) curev->data.ptr);
+                        rc_on_event_write((connection_t *) curev->data.ptr);
         }
 }
 
@@ -134,48 +232,11 @@ void rc_set_read_callback(reactor_t *rc, fn_on_event on_event_read)
                 rc->on_event_read = on_event_read;
 }
 
-void rc_set_write_callback(reactor_t *rc, fn_on_event on_event_write)
-{
-        if (on_event_write)
-                rc->on_event_write = on_event_write;
-}
-
-int rc_event_add(reactor_t *rc, int fd, uint32_t events, void *userdata)
-{
-        struct epoll_event ev = {
-                .events = to_epoll_events(events),
-                .data.fd = fd,
-        };
-
-        if (userdata)
-                ev.data.ptr = userdata;
-
-        return epoll_ctl(rc->epfd, EPOLL_CTL_ADD, fd, &ev);
-}
-
-int rc_event_mod(reactor_t *rc, int fd, uint32_t events, void *userdata)
-{
-        struct epoll_event ev = {
-                .events = to_epoll_events(events),
-                .data.fd = fd,
-        };
-
-        if (userdata)
-                ev.data.ptr = userdata;
-
-        return epoll_ctl(rc->epfd, EPOLL_CTL_MOD, fd, &ev);
-}
-
-int rc_event_del(reactor_t *rc, int fd)
-{
-        return epoll_ctl(rc->epfd, EPOLL_CTL_DEL, fd, NULL);
-}
-
 void rc_poll_events(reactor_t *rc)
 {
         int nfds;
 
-        nfds = epoll_wait(rc->epfd, rc->event_array, rc->maxevents, -1);
+        nfds = epoll_wait(rc->epfd, rc->event_array, (int) rc->maxevents, -1);
 
         if (nfds > 0) {
                 rc->event_count = nfds;
@@ -218,8 +279,8 @@ connection_t *connection_create(reactor_t *rc, int fd, size_t maxrb, size_t maxw
         conn->fd = fd;
         return conn;
 
-        err:
-                connection_destroy(conn);
+err:
+        connection_destroy(conn);
         return NULL;
 }
 
@@ -241,4 +302,24 @@ void connection_destroy(connection_t *conn)
                 free(conn->wb1.buf);
 
         free(conn);
+}
+
+void connection_write(connection_t *conn, stagbuf_t *wb, const void *data, size_t size)
+{
+        size_t avail = wb->cap - wb->len;
+
+        if (avail < size)
+                goto err;
+
+        memcpy(wb->buf + wb->len, data, size);
+
+        wb->len += size;
+
+        if (!(conn->flags | RC_WRITE)) {
+                if (rc_event_mod(conn->rc, conn->fd, RC_READ | RC_WRITE | RC_ET, conn) < 0)
+                        goto err;
+        }
+
+err:
+        connection_destroy(conn);
 }

@@ -28,9 +28,34 @@ static ssize_t eim_parse_proto(stagbuf_t *rb)
                 return size;
 
         char *data = (char *) rb->buf + EIM_SIZE;
-        logger_info("EIM receiver from client message: %.*s\n", (int) proto->len, data);
+        logger_info("recv from client message: %.*s\n", (int) proto->len, data);
 
         return size;
+}
+
+static int check_packet_ready(connection_t *conn, stagbuf_t *rb)
+{
+        while (is_eim_ready(rb->len)) {
+                /* parse proto */
+                ssize_t n = eim_parse_proto(rb);
+
+                if (n < 0) {
+                        if (n == EIM_ERROR_INCOMPLETE)
+                                break;
+                        connection_destroy(conn);
+                        return -1;
+                }
+
+                /* write ack */
+                eim_t e_ack;
+                ack(&e_ack);
+
+                connection_write(conn, &conn->wb0, &e_ack, ACK_SIZE);
+
+                rb->len -= n;
+        }
+
+        return 0;
 }
 
 static void on_event_read(connection_t *conn)
@@ -44,40 +69,28 @@ static void on_event_read(connection_t *conn)
                                  0);
 
                 if (n < 0) {
-                        RETRY_ONCE_ENTR();
+                        RETRY_IF_EINTR();
 
                         if (is_eagain())
                                 return;
+
+                        goto close;
                 }
 
-                if (n == 0) {
-                        connection_destroy(conn);
-                        return;
-                }
+                if (n == 0)
+                        goto close;
 
                 rb->len += n;
 
-                while (is_eim(rb->len)) {
-                        /* parse proto */
-                        n = eim_parse_proto(rb);
-
-                        if (n < 0) {
-                                if (n == EIM_ERROR_INCOMPLETE)
-                                        break;
-                                connection_destroy(conn);
-                                return;
-                        }
-
-                        rb->len -= n;
-                }
+                if (check_packet_ready(conn, rb) < 0)
+                        return;
         }
+
+close:
+        connection_destroy(conn);
 }
 
-static void on_event_write(connection_t *conn)
-{
-        __attr_ignore(conn);
-}
-
+__attr_noreturn
 int main(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);
@@ -108,7 +121,6 @@ int main(int argc, char **argv)
         logger_info("server start successful, fd=%d, listening port %d\n", listen_fd, PORT);
 
         rc_set_read_callback(rc, on_event_read);
-        rc_set_write_callback(rc, on_event_write);
 
         while (1)
                 rc_poll_events(rc);
