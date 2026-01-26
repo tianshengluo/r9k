@@ -1,5 +1,5 @@
 set(MODULE_NAME gateway)
-FILE(GLOB_RECURSE SRCS "*.c")
-MESSAGE(STATUS "${SRCS}")
+file(GLOB_RECURSE SRCS "*.c")
+message(STATUS "${SRCS}")
 add_executable(${MODULE_NAME} ${SRCS})
 target_link_libraries(${MODULE_NAME} PRIVATE tools)

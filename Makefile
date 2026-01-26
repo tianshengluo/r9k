@@ -15,7 +15,10 @@ UNAME     := $(shell uname -s)
 
 ifeq ($(UNAME), Linux)
 	SUBDIRS := $(SUBDIRS) gateway
-	CFLAGS  := $(CFLAGS) -pthread -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L
+	CFLAGS  := $(CFLAGS) -pthread \
+				-D_XOPEN_SOURCE=700 \
+				-D_POSIX_C_SOURCE=200809L \
+				-D_GNU_SOURCE
 endif
 
 all: $(LIBS) $(SUBDIRS)

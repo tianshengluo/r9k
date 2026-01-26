@@ -7,23 +7,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
-
-#ifndef __BYTE_ORDER
 #include <endian.h>
-#endif /* __BYTE_ORDER */
-
-#ifndef ntohll
-static inline uint64_t ntohll (uint64_t __netlong)
-{
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-        uint64_t low_part  = ntohl((uint32_t)(__netlong & 0xFFFFFFFFULL));
-        uint64_t high_part = ntohl((uint32_t)((__netlong >> 32) & 0xFFFFFFFFULL));
-        return (high_part << 32) | low_part;
-#else
-        return __netlong;
-#endif /* __BYTE_ORDER */
-}
-#endif /* ntohll */
 
 #define RETRY_ONCE_ENTR()   \
         if (errno == EINTR) \

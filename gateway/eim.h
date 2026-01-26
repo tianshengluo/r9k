@@ -33,7 +33,7 @@ typedef enum {
         EIM_TYPE_MAX     = 16,
 } eim_type_t;
 
-struct eim {
+typedef struct __attribute__((packed)) eim {
         uint32_t magic;         /* magic number */
         uint8_t  version;       /* proto version */
         uint8_t  type;          /* message type */
@@ -44,58 +44,15 @@ struct eim {
         uint64_t time;          /* message send time */
         uint32_t len;           /* body len */
         char    *data;          /* data */
-} __attribute__((packed));
+} eim_t;
 
-#define EIM_SIZE offsetof(struct eim, data)
-#define EIM_ACK_SIZE offsetof(struct eim, sid)
+typedef struct eim eim_t;
 
-static inline eim_error_t eimrbvalid(struct eim *eim, size_t rb_size)
-{
-        if (ntohl(eim->magic) != EIM_MAGIC)
-                return EIM_ERROR_MAGIC;
+#define EIM_SIZE offsetof(eim_t, data)
+#define EIM_ACK_SIZE offsetof(eim_t, sid)
 
-        if (ntohs(eim->version) != EIM_VERSION)
-                return EIM_ERROR_VERSION;
-
-        if (ntohs(eim->type) > EIM_TYPE_MAX)
-                return EIM_ERROR_TYPE;
-
-        if (ntohl(eim->len) > rb_size - EIM_SIZE)
-                return EIM_ERROR_INCOMPLETE;
-
-        return EIM_OK;
-}
-
-static inline ssize_t eim(uint8_t *rb, size_t size, struct eim **p_eim)
-{
-        if (size < EIM_SIZE)
-                return EIM_ERROR_INCOMPLETE;
-
-        eim_error_t error;
-        struct eim *eim = (struct eim *) rb;
-
-        if ((error = eimrbvalid(eim, size)) != EIM_OK)
-                return error;
-
-        eim->magic = ntohl(eim->magic);
-        eim->mid = ntohll(eim->mid);
-        eim->sid = ntohll(eim->sid);
-        eim->from = ntohll(eim->from);
-        eim->to = ntohll(eim->to);
-        eim->time = ntohll(eim->time);
-        eim->len = ntohl(eim->len);
-
-        eim->data = (char *) (rb + EIM_SIZE);
-        eim->data[eim->len] = '\0';
-
-        *p_eim = eim;
-
-        return EIM_SIZE + eim->len;
-}
-
-static inline void ack(struct eim *p_eim)
-{
-        p_eim->magic   = htonl(EIM_MAGIC);
-}
+ssize_t eim(uint8_t *rb, size_t size, eim_t **p_eim);
+void eimb(const char *message, eim_t *eim);
+void ack(eim_t *p_eim);
 
 #endif /* EIM_H_ */
