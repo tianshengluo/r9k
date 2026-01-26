@@ -27,7 +27,8 @@ static ssize_t eim_parse_proto(stagbuf_t *rb)
         if (size <= 0)
                 return size;
 
-        logger_info("EIM receiver from client message: %.*s\n", (int) proto->len, proto->data);
+        char *data = (char *) rb->buf + EIM_SIZE;
+        logger_info("EIM receiver from client message: %.*s\n", (int) proto->len, data);
 
         return size;
 }
@@ -56,14 +57,18 @@ static void on_event_read(connection_t *conn)
 
                 rb->len += n;
 
-                /* parse proto */
-                n = eim_parse_proto(rb);
+                while (is_eim(rb->len)) {
+                        /* parse proto */
+                        n = eim_parse_proto(rb);
 
-                if (n < 0) {
-                        if (n == EIM_ERROR_INCOMPLETE)
-                                continue;
-                        connection_destroy(conn);
-                        return;
+                        if (n < 0) {
+                                if (n == EIM_ERROR_INCOMPLETE)
+                                        break;
+                                connection_destroy(conn);
+                                return;
+                        }
+
+                        rb->len -= n;
                 }
         }
 }
