@@ -43,13 +43,14 @@ typedef struct __attribute__((packed)) eim {
         uint64_t to;            /* message receiver */
         uint64_t time;          /* message send time */
         uint32_t len;           /* body len */
-        char    *data;          /* data */
 } eim_t;
 
 typedef struct eim eim_t;
 
-#define EIM_SIZE offsetof(eim_t, data)
+#define EIM_SIZE sizeof(eim_t)
 #define EIM_ACK_SIZE offsetof(eim_t, sid)
+
+#define is_eim(n) (n >= EIM_SIZE)
 
 ssize_t eim(uint8_t *rb, size_t size, eim_t **p_eim);
 void eimb(const char *message, eim_t *eim);

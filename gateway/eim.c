@@ -46,8 +46,6 @@ ssize_t eim(uint8_t *rb, size_t size, eim_t **p_eim)
         eim->time = be64toh(eim->time);
         eim->len = ntohl(eim->len);
 
-        eim->data = (char *) &rb[EIM_SIZE];
-
         *p_eim = eim;
 
         return EIM_SIZE + eim->len;

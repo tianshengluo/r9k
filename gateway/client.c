@@ -38,6 +38,7 @@ void client_start()
                 eimb(line, &eim);
 
                 send(fd, &eim, EIM_SIZE, 0);
+                sleep(5);
                 send(fd, line, strlen(line), 0);
         }
 
