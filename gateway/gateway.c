@@ -10,8 +10,9 @@
 #include "reactor.h"
 #include "log.h"
 #include "eim.h"
+#include "config.h"
 
-#define PORT 26214
+extern void client_start();
 
 static ssize_t eim_parse_proto(stagbuf_t *rb)
 {
@@ -19,14 +20,14 @@ static ssize_t eim_parse_proto(stagbuf_t *rb)
                 return EIM_ERROR_INCOMPLETE;
 
         ssize_t size;
-        struct eim *proto;
+        eim_t *proto;
 
         size = eim(rb->buf, rb->len, &proto);
 
         if (size <= 0)
                 return size;
 
-        logger_info("EIM receiver from client message: %s\n", proto->data);
+        logger_info("EIM receiver from client message: %.*s\n", (int) proto->len, proto->data);
 
         return size;
 }
@@ -75,6 +76,11 @@ static void on_event_write(connection_t *conn)
 int main(int argc, char **argv)
 {
         __attr_ignore2(argc, argv);
+
+        if (argc > 1) {
+                client_start();
+                exit(0);
+        }
 
         int listen_fd;
         reactor_t *rc;

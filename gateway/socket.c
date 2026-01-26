@@ -104,7 +104,7 @@ int tcp_accept(int fd, struct sockaddr_in *addr)
                 }
 
                 if (cli >= 0) {
-                        if (set_nonblock(cli) <= 0) {
+                        if (set_nonblock(cli) < 0) {
                                 close(cli);
                                 return -1;
                         }
