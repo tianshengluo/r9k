@@ -315,7 +315,7 @@ void connection_write(connection_t *conn, stagbuf_t *wb, const void *data, size_
 
         wb->len += size;
 
-        if (!(conn->flags | RC_WRITE)) {
+        if (!(conn->flags & RC_WRITE)) {
                 if (rc_event_mod(conn->rc, conn->fd, RC_READ | RC_WRITE | RC_ET, conn) < 0)
                         goto err;
         }
