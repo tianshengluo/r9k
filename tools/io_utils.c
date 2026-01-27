@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#define BUFSIZE 4096
+
 typedef ssize_t (*io_rw_t)(int fd, void *buf, size_t count);
 
 static ssize_t _rw_read(int fd, void *buf, size_t count)
@@ -19,6 +21,46 @@ static ssize_t _rw_read(int fd, void *buf, size_t count)
 static ssize_t _rw_write(int fd, void *buf, size_t count)
 {
         return write(fd, buf, count);
+}
+
+static char *_read_in(FILE *stream)
+{
+        size_t len = 0;
+        size_t size = BUFSIZE;
+        char *buf = malloc(size + 1);
+
+        if (!buf) {
+                perror("malloc");
+                return NULL;
+        }
+
+        size_t n;
+
+        while ((n = fread(buf + len, 1, size, stream)) > 0) {
+                len += n;
+
+                if (len >= size) {
+                        size *= 2;
+                        char *tmp = realloc(buf, size + 1);
+
+                        if (!tmp) {
+                                perror("realloc");
+                                free(buf);
+                                return NULL;
+                        }
+
+                        buf = tmp;
+                }
+        }
+
+        if (ferror(stream)) {
+                perror("read stdin");
+                free(buf);
+                return NULL;
+        }
+
+        buf[len] = '\0';
+        return buf;
 }
 
 char *slurp(FILE *stream)
@@ -33,6 +75,9 @@ char *slurp(FILE *stream)
                 return NULL;
         }
 
+        if (stream == stdin)
+                return _read_in(stream);
+
         if (fseek(stream, 0, SEEK_END) != 0)
                 return NULL;
 
@@ -40,7 +85,7 @@ char *slurp(FILE *stream)
         if (fsize < 0)
                 return NULL;
 
-        cap = (size_t)fsize + 1;
+        cap = (size_t) fsize + 1;
         rewind(stream);
 
         buf = malloc(cap);
