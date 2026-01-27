@@ -8,7 +8,7 @@
 #define EIM_H_
 
 #include <stddef.h>
-#include "socket.h"
+#include "io/socket.h"
 
 /* #define EIM_MAKE_VERSION(major, minor, patch) \
         (((major) << 24) | ((minor) << 16) | (patch)) */

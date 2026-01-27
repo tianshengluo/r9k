@@ -12,7 +12,7 @@
 #include <sys/epoll.h>
 #include <sys/resource.h>
 
-#include "socket.h"
+#include "io/socket.h"
 
 struct evloop {
         int event_fd;

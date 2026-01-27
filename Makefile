@@ -4,7 +4,7 @@ CFLAGS    := -Wextra -O3 -std=c17
 BUILDDIR  := ../build
 LIBDIR    := $(BUILDDIR)/lib
 BINDIR    := $(BUILDDIR)/bin
-INCLUDES  := -I../include -I../tools/include
+INCLUDES  := -I./ -isystem ../include -isystem ../tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
 LIBS      := tools

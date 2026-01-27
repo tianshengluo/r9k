@@ -8,7 +8,7 @@
 #define REACTOR_H_
 
 #include <sys/epoll.h>
-#include "socket.h"
+#include "io/socket.h"
 
 #define RC_READ  (1 << 0)
 #define RC_WRITE (1 << 1)
