@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <endian.h>
 
 static eim_error_t eimvalid(eim_t *eim, size_t rb_size)
 {

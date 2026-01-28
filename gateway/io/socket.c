@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "cntl.h"
+#include "utils/cntl.h"
 
 int tcp_create_listener(int port)
 {

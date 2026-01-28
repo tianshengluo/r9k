@@ -5,6 +5,7 @@ endif
 SRCS        := $(shell find ./ -type f -name '*.c' | sed 's|^\./||')
 OBJDIR      := $(BUILDDIR)/obj/$(MODULE)
 OBJS        := $(patsubst %.c,$(OBJDIR)/%.o,$(SRCS))
+_INCLUDES   := $(INCLUDES) -I$(shell pwd)
 LINKS       := -ltools
 BIN         := $(BINDIR)/$(MODULE)
 
@@ -20,6 +21,6 @@ $(BIN): $(OBJS)
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@$(PRINTF) "$(MODULE)" "CC" "$(notdir $<)"
-	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	@$(CC) $(CFLAGS) $(_INCLUDES) -c $< -o $@
 
 .PHONY: all
