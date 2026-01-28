@@ -10,7 +10,7 @@
 #include "io/socket.h"
 #include "config.h"
 #include "eim.h"
-#include "log.h"
+#include "utils/log.h"
 
 void client_start()
 {
