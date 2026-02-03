@@ -2,37 +2,46 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025
  */
-#ifndef CONNECTION_H_
-#define CONNECTION_H_
+#ifndef _conn_H
+#define _conn_H
 
 #include <stdint.h>
-#include <stddef.h>
+#include <time.h>
 
-typedef uint8_t *byte_ptr_t;
-typedef struct buffer buffer_t;
+#include "buffer.h"
 
 typedef enum {
-        CONN_STATE_INIT = 0,
-        CONN_STATE_ESTABLISHED,
+        CONN_STATE_NEW,
+        CONN_STATE_ALIVE,
         CONN_STATE_CLOSED,
-} connstate_t;
+} conn_state_t;
 
-struct connection {
+typedef enum {
+        CONN_OK = 0,
+        CONN_ERROR_CLOSED = -1,
+        CONN_ERROR_NOBUFF = -2,
+        CONN_ERROR_EOF    = -3,
+} conn_error_t;
+
+struct conn {
         int             fd;
-        buffer_t*       _rb;
-        buffer_t*       _wb;
-        connstate_t     state;
-        uint64_t        last_active_ts;
+        struct buffer  *rb;
+        struct buffer  *wb;
+        conn_state_t    state;
+        time_t          last_active_ts;
         uint32_t        idle_timeout_sec;
 };
 
-struct connection *connection_create(int fd);
-void connection_destroy(struct connection *conn);
-void connection_close(struct connection *conn);
-void connection_reset(struct connection *conn);
+struct conn *conn_create(int fd);
+void conn_destroy(struct conn *c);
 
-void connection_rbuf_read(struct connection *conn);
-byte_ptr_t connection_rbuf_peek(struct connection *conn, size_t off);
-void connection_rbuf_consume(struct connection *conn, size_t off);
+void conn_reset(struct conn *c);
+void conn_close(struct conn *c);
 
-#endif /* CONNECTION_H_ */
+/* Return 0 mean success, it's either a success or a failure */
+int conn_write(struct conn *c, const void *data, size_t size);
+
+conn_error_t conn_recv(struct conn *c);
+conn_error_t conn_send(struct conn *c);
+
+#endif /* _conn_H */
