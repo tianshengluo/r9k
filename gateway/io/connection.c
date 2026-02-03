@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "socket.h"
@@ -16,175 +18,180 @@
 #define WB_MAX   8192
 #define IDLE_MAX 120
 
-struct buffer {
-        byte_ptr_t      base;
-        size_t          cap;
-        size_t          rpos;
-        size_t          wpos;
-};
-
-static buffer_t *buffer_alloc(size_t size)
+static void _conn_active(struct conn *c)
 {
-        buffer_t *buffer;
-
-        buffer = calloc(1, sizeof(struct buffer));
-
-        if (!buffer)
-                return NULL;
-
-        buffer->base = malloc(size);
-
-        if (!buffer->base) {
-                free(buffer);
-                return NULL;
-        }
-
-        return buffer;
+        c->last_active_ts = time(NULL);
 }
 
-static void buffer_free(buffer_t *buffer)
+struct conn *conn_create(int fd)
 {
-        if (!buffer)
-                return;
+        struct conn *c;
 
-        if (buffer->base)
-                free(buffer->base);
+        // if (isbadf(fd))
+        //         return NULL;
 
-        free(buffer);
-}
+        c = calloc(1, sizeof(struct conn));
 
-struct connection *connection_create(int fd)
-{
-        struct connection *conn;
-
-        if (isbadf(fd))
+        if (!c)
                 return NULL;
 
-        conn = calloc(1, sizeof(struct connection));
+        c->fd = fd;
+        c->state = CONN_STATE_ALIVE;
 
-        if (!conn)
-                return NULL;
+        c->rb = buffer_alloc(RB_MAX);
 
-        conn->fd = fd;
-        conn->state = CONN_STATE_ESTABLISHED;
-
-        conn->_rb = buffer_alloc(RB_MAX);
-
-        if (!conn->_rb)
+        if (!c->rb)
                 goto err;
 
-        conn->_wb = buffer_alloc(WB_MAX);
+        c->wb = buffer_alloc(WB_MAX);
 
-        if (!conn->_wb)
+        if (!c->wb)
                 goto err;
 
-        conn->last_active_ts = time(NULL);
-        conn->idle_timeout_sec = IDLE_MAX;
+        c->last_active_ts = time(NULL);
+        c->idle_timeout_sec = IDLE_MAX;
 
-        return conn;
+        return c;
 
 err:
-        connection_destroy(conn);
+        conn_destroy(c);
         return NULL;
 }
 
-void connection_destroy(struct connection *conn)
+void conn_destroy(struct conn *c)
 {
-        if (!conn)
+        if (!c)
                 return;
 
-        if (conn->state != CONN_STATE_CLOSED)
-                connection_close(conn);
+        if (c->state != CONN_STATE_CLOSED)
+                conn_close(c);
 
-        if (conn->_rb)
-                buffer_free(conn->_rb);
+        if (c->rb)
+                buffer_free(c->rb);
 
-        if (conn->_wb)
-                buffer_free(conn->_wb);
+        if (c->wb)
+                buffer_free(c->wb);
 
-        free(conn);
+        free(c);
 }
 
-void connection_close(struct connection *conn)
+void conn_close(struct conn *c)
 {
-        if (!conn)
+        if (!c || c->state == CONN_STATE_CLOSED)
                 return;
 
-        if (!isbadf(conn->fd))
-                close(conn->fd);
+        // if (!isbadf(c->fd))
+        //         close(c->fd);
 
-        /* reset */
-        connection_reset(conn);
-
-        conn->state = CONN_STATE_CLOSED;
+        c->state = CONN_STATE_CLOSED;
 }
 
-void connection_reset(struct connection *conn)
+void conn_reset(struct conn *c)
 {
-        conn->state             = 0;
+        c->state             = 0;
 
-        conn->_rb->rpos         = 0;
-        conn->_rb->wpos         = 0;
+        c->rb->rpos         = 0;
+        c->rb->wpos         = 0;
 
-        conn->_wb->rpos         = 0;
-        conn->_wb->wpos         = 0;
+        c->wb->rpos         = 0;
+        c->wb->wpos         = 0;
 
-        conn->last_active_ts    = 0;
-        conn->idle_timeout_sec  = 0;
+        c->last_active_ts    = 0;
+        c->idle_timeout_sec  = 0;
 }
 
-void connection_rbuf_read(struct connection *conn)
+int conn_write(struct conn *c, const void *data, size_t size)
 {
-        buffer_t *rb = conn->_rb;
+        struct buffer *wb;
+        size_t avail;
 
-        while (1) {
-                size_t avail = rb->cap - rb->wpos;
+        wb = c->wb;
+        avail = buffer_avail(wb);
+
+        if (avail == 0 || size > avail)
+                return -1;
+
+        memcpy(wb->base + wb->wpos, data, size);
+
+        wb->wpos += size;
+
+        return 0;
+}
+
+conn_error_t conn_recv(struct conn *c)
+{
+        struct buffer *rb;
+        size_t avail;
+        ssize_t n;
+
+        rb = c->rb;
+
+        while (true) {
+                avail = buffer_avail(rb);
 
                 if (avail == 0)
-                        goto close;
+                        return CONN_ERROR_NOBUFF;
 
-                ssize_t n = recv(conn->fd, rb->base + rb->wpos, avail, 0);
+                n = recv(c->fd, rb->base + rb->wpos, avail, 0);
 
-                if (n == 0)
-                        goto close;
-
-                if (n < 0) {
-                        RETRY_IF_EINTR();
-
-                        if (is_eagain())
-                                break;
-
-                        goto close;
+                if (n > 0) {
+                        rb->wpos += n;
+                        _conn_active(c);
+                        continue;
                 }
 
-                rb->wpos += n;
+                if (n == 0)
+                        return CONN_ERROR_CLOSED;
+
+                /* other syscall error */
+                RETRY_IF_EINTR();
+
+                if (is_eagain())
+                        return CONN_OK;
+
+                return CONN_ERROR_EOF;
+        }
+}
+
+conn_error_t conn_send(struct conn *c)
+{
+        struct buffer *wb;
+        size_t left;
+        ssize_t n;
+
+        wb = c->wb;
+
+        while (true) {
+                left = wb->wpos - wb->rpos;
+
+                if (left == 0) {
+                        buffer_compact(wb);
+
+                        left = wb->wpos - wb->rpos;
+
+                        if (left == 0)
+                                return CONN_ERROR_NOBUFF;
+                }
+
+                n = send(c->fd, wb->base + wb->rpos, left, 0);
+
+                if (n > 0) {
+                        wb->rpos += n;
+                        _conn_active(c);
+                        continue;
+                }
+
+                if (n == 0)
+                        return -1;
+
+                /* other syscall error */
+                RETRY_IF_EINTR();
+
+                if (is_eagain())
+                        return 0;
+
+                return -1;
         }
 
-close:
-        connection_close(conn);
-}
-
-byte_ptr_t connection_rbuf_peek(struct connection *conn, size_t off)
-{
-        buffer_t *rb = conn->_rb;
-
-        if (rb->wpos - rb->rpos < off)
-                return NULL;
-
-        return rb->base + rb->rpos + off;
-}
-
-void connection_rbuf_consume(struct connection *conn, size_t off)
-{
-        buffer_t *rb = conn->_rb;
-
-        size_t avail = rb->wpos - rb->rpos;
-
-        if (off > avail)
-                off = avail;
-
-        rb->rpos += off;
-
-        if (rb->rpos == rb->wpos)
-                rb->rpos = rb->wpos = 0;
+        return 0;
 }

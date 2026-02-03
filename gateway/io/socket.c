@@ -39,7 +39,6 @@ err:
         return -1;
 }
 
-
 int udp_create_bound_socket(int port)
 {
         int fd, opt = 1;
