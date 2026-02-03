@@ -27,8 +27,8 @@ struct conn *conn_create(int fd)
 {
         struct conn *c;
 
-        // if (isbadf(fd))
-        //         return NULL;
+        if (isbadf(fd))
+                return NULL;
 
         c = calloc(1, sizeof(struct conn));
 
@@ -80,8 +80,8 @@ void conn_close(struct conn *c)
         if (!c || c->state == CONN_STATE_CLOSED)
                 return;
 
-        // if (!isbadf(c->fd))
-        //         close(c->fd);
+        if (!isbadf(c->fd))
+                close(c->fd);
 
         c->state = CONN_STATE_CLOSED;
 }
