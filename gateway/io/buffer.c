@@ -17,12 +17,12 @@ struct buffer *buffer_alloc(size_t size)
                 return NULL;
 
         buffer->base = malloc(size);
+        buffer->cap  = size;
 
         if (!buffer->base) {
                 free(buffer);
                 return NULL;
         }
-
         return buffer;
 }
 
@@ -54,4 +54,16 @@ void buffer_compact(struct buffer *buf)
 
         buf->wpos -= buf->rpos;
         buf->rpos  = 0;
+}
+
+size_t buffer_avail(struct buffer *buf)
+{
+        size_t avail = buf->cap - buf->wpos;
+
+        if (avail > 0)
+                return avail;
+
+        buffer_compact(buf);
+
+        return buf->cap - buf->wpos;
 }

@@ -3,18 +3,20 @@
 
 #include <string.h>
 #include <errno.h>
+#include <r9k/compiler_attrs.h>
 
-void _logger_record(const char *level, const char *fmt, ...); // NOLINT(*-reserved-identifier)
+__attr_printf(2, 3)
+void _logger_record(const char *level, const char *fmt, ...);
 
-#define logger_info(fmt, ...)  _logger_record("INFO", fmt, ##__VA_ARGS__)
-#define logger_warn(fmt, ...)  _logger_record("WARN", fmt, ##__VA_ARGS__)
-#define logger_error(fmt, ...) _logger_record("ERROR", fmt, ##__VA_ARGS__)
-#define logger_fatal(fmt, ...) _logger_record("FATAL", fmt, ##__VA_ARGS__)
+#define log_info(fmt, ...)  _logger_record("INFO", fmt, ##__VA_ARGS__)
+#define log_warn(fmt, ...)  _logger_record("WARN", fmt, ##__VA_ARGS__)
+#define log_error(fmt, ...) _logger_record("ERROR", fmt, ##__VA_ARGS__)
+#define log_fatal(fmt, ...) _logger_record("FATAL", fmt, ##__VA_ARGS__)
 
 #ifndef N_DEBUG
-#define logger_debug(fmt, ...) _logger_record("DEBUG", fmt, ##__VA_ARGS__)
+#define log_debug(fmt, ...) _logger_record("DEBUG", fmt, ##__VA_ARGS__)
 #else
-#define logger_debug(fmt, ...)
+#define log_debug(fmt, ...)
 #endif /* N_DEBUG */
 
 #define syserr strerror(errno)

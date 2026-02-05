@@ -8,15 +8,20 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
-#define RETRY_IF_EINTR()    \
-        if (errno == EINTR) \
+#define RETRY_IF_EINTR()        \
+        if (errno == EINTR)     \
                 continue
 
 #define is_eagain() (errno == EAGAIN || errno == EWOULDBLOCK)
 
+struct host_sockaddr_in {
+        uint16_t sin_port;
+        char     sin_addr[INET6_ADDRSTRLEN];
+};
+
 int tcp_create_listener(int port);
 int udp_create_bound_socket(int port);
 int tcp_connect(const char *host, int port);
-int tcp_accept(int fd, struct sockaddr_in *addr);
+int tcp_accept(int fd, struct host_sockaddr_in *addr);
 
 #endif /* SOCKET_H_ */

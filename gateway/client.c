@@ -9,23 +9,23 @@
 
 #include "io/socket.h"
 #include "config.h"
-#include "eim.h"
 #include "utils/log.h"
+#include "ipc.h"
 
 void client_start()
 {
         int fd;
+        ipc_hdr_t hdr;
 
         fd = tcp_connect("127.0.0.1", PORT);
 
         if (fd < 0) {
-                logger_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
+                log_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
                 exit(1);
         }
 
         char prompt[64];
         char *line = NULL;
-        eim_t eim;
 
         while (1) {
                 snprintf(prompt, sizeof(prompt), "%d > ", fd);
@@ -35,11 +35,11 @@ void client_start()
                 if (!line)
                         continue;
 
-                eimb(line, &eim);
+                size_t len = strlen(line);
+                ipc_hdr_build(&hdr, 123, 987, (uint32_t) len);
 
-                send(fd, &eim, EIM_SIZE, 0);
-                sleep(5);
-                send(fd, line, strlen(line), 0);
+                send(fd, &hdr, sizeof(ipc_hdr_t), 0);
+                send(fd, line, len, 0);
         }
 
 }

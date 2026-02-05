@@ -1,47 +1,34 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025
+ * Copyright (conn) 2025
  */
-#ifndef _conn_H
-#define _conn_H
+#ifndef CONNECTION_H_
+#define CONNECTION_H_
 
-#include <stdint.h>
 #include <time.h>
 
 #include "buffer.h"
+#include "socket.h"
 
-typedef enum {
-        CONN_STATE_NEW,
-        CONN_STATE_ALIVE,
-        CONN_STATE_CLOSED,
-} conn_state_t;
-
-typedef enum {
-        CONN_OK = 0,
-        CONN_ERROR_CLOSED = -1,
-        CONN_ERROR_NOBUFF = -2,
-        CONN_ERROR_EOF    = -3,
-} conn_error_t;
-
-struct conn {
-        int             fd;
-        struct buffer  *rb;
-        struct buffer  *wb;
-        conn_state_t    state;
-        time_t          last_active_ts;
-        uint32_t        idle_timeout_sec;
+struct connection {
+        int fd;
+        struct buffer *rb;
+        struct buffer *wb;
+        uint8_t writable;
+        struct host_sockaddr_in addr;
+        time_t last_active_ts;
+        uint32_t idle_timeout_sec;
 };
 
-struct conn *conn_create(int fd);
-void conn_destroy(struct conn *c);
+struct connection *connection_create(int fd, struct host_sockaddr_in *addr);
+void connection_destroy(struct connection *conn);
 
-void conn_reset(struct conn *c);
-void conn_close(struct conn *c);
+/* 写入数据到缓冲区，要么全部写成功要么全部写失败。
+ * 返回 0 表示写入成功。 */
+int connection_buffer_write(struct connection *conn, const void *data,
+                            size_t size);
 
-/* Return 0 mean success, it's either a success or a failure */
-int conn_write(struct conn *c, const void *data, size_t size);
+ssize_t connection_socket_recv(struct connection *conn);
+ssize_t connection_socket_send(struct connection *conn);
 
-conn_error_t conn_recv(struct conn *c);
-conn_error_t conn_send(struct conn *c);
-
-#endif /* _conn_H */
+#endif /* CONNECTION_H_ */

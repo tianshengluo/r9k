@@ -88,17 +88,24 @@ int tcp_connect(const char *host, int port)
         return fd;
 }
 
-int tcp_accept(int fd, struct sockaddr_in *addr)
+int tcp_accept(int fd, struct host_sockaddr_in *addr)
 {
         int cli;
 
         while (1) {
                 if (addr) {
+                        struct sockaddr_in cli_addr;
                         socklen_t len = sizeof(struct sockaddr_in);
 
                         cli = accept(fd,
-                                     (struct sockaddr *) addr,
+                                     (struct sockaddr *) &cli_addr,
                                      &len);
+
+                        addr->sin_port = ntohs(cli_addr.sin_port);
+
+                        if (inet_ntop(AF_INET6, &cli_addr.sin_addr, addr->sin_addr,
+                                      sizeof(addr->sin_addr)) == NULL)
+                                perror("inet_ntop() failed");
                 } else {
                         cli = accept(fd, NULL, NULL);
                 }
