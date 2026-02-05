@@ -35,11 +35,13 @@ void client_start()
                 if (!line)
                         continue;
 
-                size_t len = strlen(line);
-                ipc_hdr_build(&hdr, 123, 987, (uint32_t) len);
+                while (1) {
+                        size_t len = strlen(line);
+                        ipc_hdr_build(&hdr, 123, 987, (uint32_t) len);
 
-                send(fd, &hdr, sizeof(ipc_hdr_t), 0);
-                send(fd, line, len, 0);
+                        send(fd, &hdr, sizeof(ipc_hdr_t), 0);
+                        send(fd, line, len, 0);
+                }
         }
 
 }

@@ -21,20 +21,20 @@ typedef struct {
         uint64_t mid;
         uint64_t from;
         uint64_t to;
-        uint64_t timestamp;
+        uint64_t  timestamp;
         uint32_t body_len;
-} ipc_hdr_t;
+} __attribute__((__packed__)) ipc_hdr_t;
 
-typedef struct {
+typedef struct  {
         ipc_hdr_t hdr;
         char     *data;
-} ipc_t;
+} __attribute__((__packed__)) ipc_t;
 
 typedef struct {
         uint32_t magic;
         uint16_t type;
         uint64_t mid;
-} ack_t;
+} __attribute__((__packed__))ack_t;
 
 #define HEADER_SIZE (sizeof(ipc_hdr_t))
 
