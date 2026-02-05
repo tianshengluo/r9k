@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <time.h>
 
+#include "r9k/compiler_attrs.h"
 #include "utils/endian.h"
 
 #define MAX_BODY 4096
@@ -76,6 +77,10 @@ ssize_t ipc_unpack(ipc_t *ipc, const uint8_t *buf, size_t len)
                 return -ENODATA;
 
         ipc->data = (char *) p;
+
+        const size_t _hdr_size = HEADER_SIZE;
+        const size_t _hdr_mul_size = buf - p;
+        __attr_ignore2(_hdr_size, _hdr_mul_size);
 
         return HEADER_SIZE + hdr->body_len;
 }

@@ -99,7 +99,7 @@ static void epoll_mark_writable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection writable failed: %s\n", syserr);
+                        log_error("mark connection %p writable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
@@ -116,25 +116,29 @@ static void epoll_mark_unwritable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection unwritable failed: %s\n", syserr);
+                        log_error("mark connection %p unwritable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
 }
 
-static ssize_t unpack(int epfd, struct connection *conn, struct buffer *rb)
+static ssize_t unpack(int epfd, struct connection *conn)
 {
         ssize_t r;
-        ipc_t msg;
+        ipc_t ipc;
         ack_t ack;
+        struct buffer *rb;
 
-        r = ipc_unpack(&msg, rb->base + rb->rpos, buffer_length(rb));
+        rb = conn->rb;
+
+        r = ipc_unpack(&ipc, rb->base + rb->rpos, buffer_length(rb));
 
         if (r > 0) {
                 rb->rpos += r;
 
-                printf("msg: %s\n", msg.data);
-                ipc_ack(&ack, msg.hdr.mid);
+                ipc_ack(&ack, ipc.hdr.mid);
+
+                log_debug("client connecetion %p recv message: %s\n", conn, ipc.data);
 
                 if (connection_buffer_write(conn, &ack, sizeof(ack_t)) == 0)
                         epoll_mark_writable(epfd, conn);
@@ -144,41 +148,51 @@ static ssize_t unpack(int epfd, struct connection *conn, struct buffer *rb)
 
         switch (r) {
                 case -EINVAL:
-                        log_error("invalid message protocol from %ss\n", conn->addr.sin_addr);
+                        log_error("invalid message protocol from %s\n", conn->addr.sin_addr);
                         return r;
                 case -ENODATA:
                         return r;
                 case -E2BIG:
-                        log_error("message too large from %s", conn->addr.sin_addr);
+                        log_error("message too large from %s\n", conn->addr.sin_addr);
                         return r;
                 default:
-                        log_error("unknown unpack error %ld from %s", r, conn->addr.sin_addr);
+                        log_error("unknown unpack error %ld from %s\n", r, conn->addr.sin_addr);
                         return r;
         }
 }
 
 static void on_event_read(int epfd, struct connection *conn)
 {
-        ssize_t r;
-        struct buffer *rb;
-
-        rb = conn->rb;
+        ssize_t r, err;
 
         while (true) {
                 r = connection_socket_recv(conn);
 
-                /* 处理协议 */
-                if (r >= HEADER_SIZE || r == -ENOSPC) {
-                        if (unpack(epfd, conn, rb) < 0)
-                                goto err_io;
+                if (r > 0) {
+                        err = unpack(epfd, conn);
+
+                        if (err < 0 && err != -ENODATA)
+                                goto err;
+
+                        return;
+                }
+
+                if (r == -ENOSPC) {
+                        err = unpack(epfd, conn);
+
+                        if (err < 0) {
+                                log_error("connection %p read buffer full but cannot consume buffer data\n",
+                                          conn);
+                                goto err;
+                        }
+
                         continue;
                 }
 
-                if (r == -EIO)
-                        goto err_io;
+                goto err;
         }
 
-err_io:
+err:
         connection_destroy(conn);
 }
 
@@ -195,6 +209,7 @@ static void route_events(int epfd, int listen_fd,
                                int nfds)
 {
         struct epoll_event *cur_ev;
+        struct connection *conn;
 
         for (int i = 0; i < nfds; i++) {
                 cur_ev = &events[i];
@@ -202,8 +217,12 @@ static void route_events(int epfd, int listen_fd,
                 if (cur_ev->events & EPOLLRDHUP
                         || cur_ev->events & EPOLLHUP
                         || cur_ev->events & EPOLLERR) {
-                        if (cur_ev->data.ptr)
-                                connection_destroy((struct connection *) cur_ev->data.ptr);
+                        if (cur_ev->data.ptr) {
+                                conn = (struct connection *) cur_ev->data.ptr;
+                                epoll_ctl(epfd, EPOLL_CTL_DEL, conn->fd, NULL);
+                                connection_destroy(conn);
+                                continue;
+                        }
                 }
 
                 if (cur_ev->data.fd == listen_fd) {

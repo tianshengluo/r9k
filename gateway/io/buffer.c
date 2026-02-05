@@ -56,7 +56,7 @@ void buffer_compact(struct buffer *buf)
         buf->rpos  = 0;
 }
 
-size_t buffer_avail(struct buffer *buf)
+size_t buffer_writeable(struct buffer *buf)
 {
         size_t avail = buf->cap - buf->wpos;
 

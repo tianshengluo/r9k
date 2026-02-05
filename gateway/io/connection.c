@@ -15,7 +15,7 @@
 #include "utils/cntl.h"
 #include "utils/log.h"
 
-#define RB_MAX   4096
+#define RB_MAX   128
 #define WB_MAX   8192
 #define IDLE_MAX 120
 
@@ -106,7 +106,7 @@ int connection_buffer_write(struct connection *conn, const void *data, size_t si
         size_t avail;
 
         wb = conn->wb;
-        avail = buffer_avail(wb);
+        avail = buffer_writeable(wb);
 
         if (avail == 0 || size > avail)
                 return -EINVAL;
@@ -123,12 +123,12 @@ ssize_t connection_socket_recv(struct connection *conn)
         struct buffer *rb;
         size_t avail;
         ssize_t n;
-        ssize_t nread = 0;
+        ssize_t total = 0;
 
         rb = conn->rb;
 
         while (true) {
-                avail = buffer_avail(rb);
+                avail = buffer_writeable(rb);
 
                 if (avail == 0)
                         return -ENOSPC;
@@ -136,20 +136,29 @@ ssize_t connection_socket_recv(struct connection *conn)
                 n = recv(conn->fd, rb->base + rb->wpos, avail, 0);
 
                 if (n > 0) {
-                        nread += n;
+                        total += n;
                         rb->wpos += n;
                         _connection_active(conn);
                         continue;
                 }
 
-                if (n == 0)
-                        return -EIO;
+                if (n == 0) {
+                        log_debug("connection %p recv close\n", conn);
+                        return 0;
+                }
 
                 /* other syscall error */
                 RETRY_IF_EINTR();
 
                 if (is_eagain())
-                        return nread;
+                        return total;
+
+                if (errno == ECONNRESET) {
+                        log_debug("connection %p reset by peer\n", conn);
+                        return -errno;
+                }
+
+                log_debug("connection %p recv failed, cause: %s\n", conn, syserr);
 
                 return -EIO;
         }
@@ -166,14 +175,8 @@ ssize_t connection_socket_send(struct connection *conn)
         while (true) {
                 left = wb->wpos - wb->rpos;
 
-                if (left == 0) {
-                        buffer_compact(wb);
-
-                        left = wb->wpos - wb->rpos;
-
-                        if (left == 0)
-                                return -1;
-                }
+                if (left == 0)
+                        return 0;
 
                 n = send(conn->fd, wb->base + wb->rpos, left, 0);
 
@@ -194,6 +197,4 @@ ssize_t connection_socket_send(struct connection *conn)
 
                 return -errno;
         }
-
-        return 0;
 }
