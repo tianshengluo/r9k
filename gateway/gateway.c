@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/epoll.h>
 #include <r9k/compiler_attrs.h>
+#include <r9k/yyjson.h>
 
 #include "io/connection.h"
 #include "io/socket.h"
@@ -24,7 +25,7 @@ static int _init(int *p_listen, int *p_epfd)
         listen_fd = tcp_create_listener(PORT);
 
         if (listen_fd < 0) {
-                log_error("Listen socket create failed: %s\n", syserr);
+                log_error("listen socket create failed: %s\n", syserr);
                 return -1;
         }
 
@@ -48,7 +49,7 @@ static int _init(int *p_listen, int *p_epfd)
         *p_listen = listen_fd;
         *p_epfd   = epfd;
 
-        log_info("Server start success listening on port: %d\n", PORT);
+        log_info("server start success listening on port: %d\n", PORT);
 
         return 0;
 }
@@ -99,7 +100,7 @@ static void epoll_mark_writable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("Mark connection %p writable failed: %s\n", conn, syserr);
+                        log_error("mark connection %p writable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
@@ -116,49 +117,106 @@ static void epoll_mark_unwritable(int epfd, struct connection *conn)
                 };
 
                 if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("Mark connection %p unwritable failed: %s\n", conn, syserr);
+                        log_error("mark connection %p unwritable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
 }
 
+static uint64_t ipc_body_valid(const char *data)
+{
+        yyjson_doc *doc;
+        yyjson_val *root;
+        yyjson_val *obj;
+
+        const char *content;
+        uint64_t mid;
+
+        doc = yyjson_read(data, strlen(data), YYJSON_READ_NOFLAG);
+
+        if (!doc) {
+                log_error("parse ipc data json error");
+                goto err;
+        }
+
+        root = yyjson_doc_get_root(doc);
+
+        if (yyjson_get_type(root) != YYJSON_TYPE_OBJ) {
+                log_error("json root node is not object type");
+                goto err;
+        }
+
+        obj = yyjson_obj_get(root, "content");
+
+        if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_STR) {
+                log_error("json content is null or not string");
+                goto err;
+        }
+
+        content = yyjson_get_str(obj);
+
+        if (strlen(content) == 0) {
+                log_error("message content cannot empty");
+                goto err;
+        }
+
+        obj = yyjson_obj_get(root, "mid");
+
+        if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_NUM) {
+                log_error("json mid is null or not num");
+                goto err;
+        }
+
+        mid = yyjson_get_uint(obj);
+        yyjson_doc_free(doc);
+
+        return mid;
+
+err:
+        yyjson_doc_free(doc);
+        return -EINVAL;
+}
+
 static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
 {
-        ssize_t r;
         ipc_t ipc;
-        ack_t ack;
-        struct buffer *rb;
+        ssize_t r;
+        struct buffer *rb = conn->rb;
+        uint8_t *start_buf;
+        uint64_t mid;
 
-        rb = conn->rb;
+        while (true) {
+                start_buf = rb->base + rb->rpos;
 
-        r = ipc_unpack(&ipc, rb->base + rb->rpos, buffer_readable(rb));
+                r = ipc_header_unpack(&ipc, start_buf, buffer_readable(rb));
 
-        if (r > 0) {
-                rb->rpos += r;
+                if (r > 0) {
+                        char *data = (char *) (start_buf + r);
+                        rb->rpos += r + ipc.body_len;
+                        mid = ipc_body_valid(data);
+                        log_info("recv client from %s ipc data[%llu]: %s\n",
+                                 conn->addr.sin_addr,
+                                 mid,
+                                 data);
+                        continue;
+                }
 
-                ipc_ack(&ack, ipc.hdr.mid);
-
-                log_debug("Client connecetion %p recv message: %s\n", conn, ipc.data);
-
-                if (connection_buffer_write(conn, &ack, sizeof(ack_t)) == 0)
-                        epoll_mark_writable(epfd, conn);
-
-                return r;
+                switch (r) {
+                        case -EPROTO:
+                                log_error("invalid protocol data, parse ipc_t failed\n");
+                                goto err;
+                        case -ENODATA:
+                                goto err;
+                        default:
+                                log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);
+                                goto err;
+                }
         }
 
-        switch (r) {
-                case -EINVAL:
-                        log_error("Invalid message protocol from %s\n", conn->addr.sin_addr);
-                        return r;
-                case -ENODATA:
-                        return r;
-                case -E2BIG:
-                        log_error("Message too large from %s\n", conn->addr.sin_addr);
-                        return r;
-                default:
-                        log_error("Unknown unpack error %ld from %s\n", r, conn->addr.sin_addr);
-                        return r;
-        }
+        return 0;
+
+err:
+        return -1;
 }
 
 static void on_event_read(int epfd, struct connection *conn)
@@ -181,7 +239,7 @@ static void on_event_read(int epfd, struct connection *conn)
                         err = try_unpack_ipc(epfd, conn);
 
                         if (err < 0) {
-                                log_error("Connection %p read buffer full but cannot consume buffer data\n", conn);
+                                log_error("connection %p read buffer full but cannot consume buffer data\n", conn);
                                 goto err;
                         }
 

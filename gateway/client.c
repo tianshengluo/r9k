@@ -15,7 +15,6 @@
 void client_start()
 {
         int fd;
-        ipc_hdr_t hdr;
 
         fd = tcp_connect("127.0.0.1", PORT);
 
@@ -34,12 +33,6 @@ void client_start()
 
                 if (!line)
                         continue;
-
-                size_t len = strlen(line);
-                ipc_hdr_build(&hdr, 123, 987, (uint32_t) len);
-
-                send(fd, &hdr, sizeof(ipc_hdr_t), 0);
-                send(fd, line, len, 0);
         }
 
 }

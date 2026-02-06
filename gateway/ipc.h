@@ -2,44 +2,35 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (conn) 2025
  */
-#ifndef MESSAGE_H_
-#define MESSAGE_H_
+#ifndef IPC_H_
+#define IPC_H_
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <sys/types.h>
 
-#define IPC_MAGIC        0xBADF00
-#define IPC_VERSION      1U
+#define IPC_MAGIC   0xBADF00
+#define ACK_MAGIC   0xBADF01
 
-#define IPC_TYPE_ACK     1
-#define IPC_TYPE_MESSAGE 2
+#define IPC_VERSION 1
+#define ACK_VERSION 1
 
 typedef struct {
-        uint32_t magic;
-        uint16_t version;
-        uint16_t type;
-        uint64_t mid;
-        uint64_t from;
-        uint64_t to;
-        uint64_t  timestamp;
-        uint32_t body_len;
-} __attribute__((__packed__)) ipc_hdr_t;
-
-typedef struct  {
-        ipc_hdr_t hdr;
-        char     *data;
+        uint32_t magic;     // +4 魔数
+        uint16_t version;   // +2 协议版本
+        uint32_t flags;     // +4 标志位
+        uint32_t type;      // +4 类型
+        uint32_t crc32;     // +4 crc32
+        uint32_t body_len;  // +4 消息体长度
 } __attribute__((__packed__)) ipc_t;
 
 typedef struct {
-        uint32_t magic;
-        uint16_t type;
-        uint64_t mid;
-} __attribute__((__packed__)) ack_t;
+        uint32_t magic;     // +4 魔数
+        uint16_t version;   // +2 协议版本
+        uint32_t flags;     // +4 标志位
+        uint64_t mid;       // +8 消息ID
+} ack_t;
 
-#define HEADER_SIZE (sizeof(ipc_hdr_t))
+ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size);
 
-void ipc_ack(ack_t *hdr, int mid);
-void ipc_hdr_build(ipc_hdr_t *hdr, uint64_t from, uint64_t to, uint32_t body_len);
-ssize_t ipc_unpack(ipc_t *ipc, const uint8_t *buf, size_t len);
-
-#endif /* MESSAGE_H_ */
+#endif /* IPC_H_ */

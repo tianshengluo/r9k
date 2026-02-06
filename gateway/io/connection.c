@@ -173,7 +173,7 @@ ssize_t connection_socket_send(struct connection *conn)
         wb = conn->wb;
 
         while (true) {
-                left = wb->wpos - wb->rpos;
+                left = buffer_readable(wb);
 
                 if (left == 0)
                         return 0;

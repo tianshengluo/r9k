@@ -20,7 +20,7 @@
  SOFTWARE.
  *============================================================================*/
 
-#include "yyjson.h"
+#include <r9k/yyjson.h>
 #include <math.h> /* for `HUGE_VAL/INFINIY/NAN` macros, no libm required */
 
 
