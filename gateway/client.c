@@ -75,9 +75,6 @@ reconnect:
                 }
 
                 writebuf(line);
-                writebuf(line);
-                writebuf(line);
-                writebuf(line);
 
                 r = send(fd, &buf, off, MSG_NOSIGNAL);
 
