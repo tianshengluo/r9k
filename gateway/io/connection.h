@@ -25,8 +25,8 @@ void connection_destroy(struct connection *conn);
 
 /* 写入数据到缓冲区，要么全部写成功要么全部写失败，
  * 返回 0 表示写入成功。 */
-int connection_buffer_write(struct connection *conn, const void *data,
-                            size_t size);
+ssize_t connection_buffer_write(struct connection *conn, const void *data,
+                                size_t size);
 
 ssize_t connection_socket_recv(struct connection *conn);
 ssize_t connection_socket_send(struct connection *conn);

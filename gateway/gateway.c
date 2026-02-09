@@ -14,120 +14,37 @@
 #include "utils/log.h"
 #include "ipc.h"
 #include "config.h"
+#include "evlp.h"
 
-extern void client_start();
+extern void client_start(void);
 
-static int _init(int *p_listen, int *p_epfd)
+static evlp_t *_init(on_read_fn_t on_read, on_write_fn_t on_write)
 {
         int listen_fd;
-        int epfd;
+        evlp_t *evlp;
 
         listen_fd = tcp_create_listener(PORT);
 
         if (listen_fd < 0) {
                 log_error("listen socket create failed: %s\n", syserr);
-                return -1;
+                exit(1);
+                return NULL;
         }
 
-        epfd = epoll_create1(EPOLL_CLOEXEC);
+        evlp = evlp_create(listen_fd, on_read, on_write);
 
-        if (epfd < 0) {
-                log_error("epoll fd create failed: %s\n", syserr);
-                return -1;
-        }
+        if (!evlp)
+                exit(1);
 
-        struct epoll_event tev = {
-                .events = EPOLLIN,
-                .data.fd = listen_fd,
-        };
-
-        if (epoll_ctl(epfd, EPOLL_CTL_ADD, listen_fd, &tev) < 0) {
-                log_error("epoll_ctl add listen_fd failed: %s\n", syserr);
-                return -1;
-        }
-
-        *p_listen = listen_fd;
-        *p_epfd   = epfd;
-
-        log_info("server start success listening on port: %d\n", PORT);
-
-        return 0;
-}
-
-static void on_event_accept(int epfd, int listen_fd)
-{
-        int cli;
-        struct host_sockaddr_in addr;
-        struct connection *conn;
-
-        while (true) {
-                cli = tcp_accept(listen_fd, &addr);
-
-                if (cli < 0) {
-                        RETRY_IF_EINTR();
-
-                        if (is_eagain())
-                                break;
-                }
-
-                conn = connection_create(cli, &addr);
-
-                if (!conn) {
-                        close(cli);
-                        continue;
-                }
-
-                struct epoll_event ev = {
-                        .events = EPOLLIN,
-                        .data.ptr = conn,
-                };
-
-                if (epoll_ctl(epfd, EPOLL_CTL_ADD, cli, &ev) < 0) {
-                        log_error("epoll_ctl add client failed: %s\n", syserr);
-                        connection_destroy(conn);
-                }
-        }
-}
-
-static void epoll_mark_writable(int epfd, struct connection *conn)
-{
-        if (!conn->writable) {
-                conn->writable = 1;
-
-                struct epoll_event ev = {
-                        .events = EPOLLIN | EPOLLOUT | EPOLLET,
-                        .data.ptr = conn,
-                };
-
-                if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p writable failed: %s\n", conn, syserr);
-                        connection_destroy(conn);
-                }
-        }
-}
-
-static void epoll_mark_unwritable(int epfd, struct connection *conn)
-{
-        if (conn->writable) {
-                conn->writable = 0;
-
-                struct epoll_event ev = {
-                        .events = EPOLLIN | EPOLLET,
-                        .data.ptr = conn,
-                };
-
-                if (epoll_ctl(epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p unwritable failed: %s\n", conn, syserr);
-                        connection_destroy(conn);
-                }
-        }
+        return evlp;
 }
 
 static uint64_t ipc_body_valid(const char *data)
 {
         yyjson_doc *doc;
         yyjson_val *root;
-        yyjson_val *obj;
+        yyjson_val *obj_mid;
+        yyjson_val *obj_content;
 
         const char *content;
         uint64_t mid;
@@ -135,39 +52,37 @@ static uint64_t ipc_body_valid(const char *data)
         doc = yyjson_read(data, strlen(data), YYJSON_READ_NOFLAG);
 
         if (!doc) {
-                log_error("parse ipc data json error\n");
+                log_error("JSON: parse ipc data error\n");
                 goto err;
         }
 
         root = yyjson_doc_get_root(doc);
 
         if (yyjson_get_type(root) != YYJSON_TYPE_OBJ) {
-                log_error("json root node is not object type");
+                log_error("JSON: root node is not object type");
                 goto err;
         }
 
-        obj = yyjson_obj_get(root, "content");
+        obj_content = yyjson_obj_get(root, "msg_content");
 
-        if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_STR) {
-                log_error("json content is null or not string\n");
+        if (!obj_content || !yyjson_get_type(obj_content) == YYJSON_TYPE_STR)
                 goto err;
-        }
 
-        content = yyjson_get_str(obj);
+        content = yyjson_get_str(obj_content);
 
         if (strlen(content) == 0) {
                 log_error("message content cannot empty\n");
                 goto err;
         }
 
-        obj = yyjson_obj_get(root, "mid");
+        obj_mid = yyjson_obj_get(root, "msg_id");
 
-        if (!obj || !yyjson_get_type(obj) == YYJSON_TYPE_NUM) {
-                log_error("json mid is null or not num\n");
+        if (!obj_mid || !yyjson_get_type(obj_mid) == YYJSON_TYPE_NUM) {
+                log_error("JSON: mid is null or not num\n");
                 goto err;
         }
 
-        mid = yyjson_get_uint(obj);
+        mid = yyjson_get_uint(obj_mid);
         yyjson_doc_free(doc);
 
         return mid;
@@ -177,7 +92,22 @@ err:
         return -EINVAL;
 }
 
-static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
+static void sendack(evlp_t *evlp, struct connection * conn, uint64_t mid)
+{
+        ack_t ak;
+        ssize_t r;
+
+        ack(&ak, mid);
+
+        r = connection_buffer_write(conn, &ak, sizeof(ack_t));
+
+        if (r < 0)
+                return;
+
+        evlp_mark_writable(evlp, conn);
+}
+
+static ssize_t try_unpack_ipc(evlp_t *evlp, struct connection *conn)
 {
         ipc_t ipc;
         ssize_t r;
@@ -198,6 +128,7 @@ static ssize_t try_unpack_ipc(int epfd, struct connection *conn)
                                  conn->addr.sin_addr,
                                  mid,
                                  data);
+                        sendack(evlp, conn, mid);
                         continue;
                 }
 
@@ -219,7 +150,7 @@ err:
         return -1;
 }
 
-static void on_event_read(int epfd, struct connection *conn)
+static void on_event_read(evlp_t *evlp, struct connection *conn)
 {
         ssize_t r, err;
 
@@ -227,7 +158,7 @@ static void on_event_read(int epfd, struct connection *conn)
                 r = connection_socket_recv(conn);
 
                 if (r > 0) {
-                        err = try_unpack_ipc(epfd, conn);
+                        err = try_unpack_ipc(evlp, conn);
 
                         if (err < 0 && err != -ENODATA)
                                 goto err;
@@ -236,7 +167,7 @@ static void on_event_read(int epfd, struct connection *conn)
                 }
 
                 if (r == -ENOSPC) {
-                        err = try_unpack_ipc(epfd, conn);
+                        err = try_unpack_ipc(evlp, conn);
 
                         if (err < 0) {
                                 log_error("connection %p read buffer full but cannot consume buffer data\n", conn);
@@ -253,46 +184,12 @@ err:
         connection_destroy(conn);
 }
 
-static void on_event_write(int epfd, struct connection *conn)
+static void on_event_write(evlp_t *evlp, struct connection *conn)
 {
         if (connection_socket_send(conn) != 0)
                 connection_destroy(conn);
 
-        epoll_mark_unwritable(epfd, conn);
-}
-
-static void route_events(int epfd, int listen_fd,
-                               struct epoll_event *events,
-                               int nfds)
-{
-        struct epoll_event *cur_ev;
-        struct connection *conn;
-
-        for (int i = 0; i < nfds; i++) {
-                cur_ev = &events[i];
-
-                if (cur_ev->events & EPOLLRDHUP
-                        || cur_ev->events & EPOLLHUP
-                        || cur_ev->events & EPOLLERR) {
-                        if (cur_ev->data.ptr) {
-                                conn = (struct connection *) cur_ev->data.ptr;
-                                epoll_ctl(epfd, EPOLL_CTL_DEL, conn->fd, NULL);
-                                connection_destroy(conn);
-                                continue;
-                        }
-                }
-
-                if (cur_ev->data.fd == listen_fd) {
-                        on_event_accept(epfd, listen_fd);
-                        continue;
-                }
-
-                if (cur_ev->events & EPOLLIN)
-                        on_event_read(epfd, (struct connection *) cur_ev->data.ptr);
-
-                if (cur_ev->events & EPOLLOUT)
-                        on_event_write(epfd, (struct connection *) cur_ev->data.ptr);
-        }
+        evlp_mark_unwritable(evlp, conn);
 }
 
 int main(int argc, char **argv)
@@ -302,20 +199,10 @@ int main(int argc, char **argv)
         if (argc > 1)
                 client_start();
 
-        int listen_fd;
-        int epfd;
+        evlp_t *evlp;
 
-        struct epoll_event events[MAX_EVENTS];
+        evlp = _init(on_event_read, on_event_write);
 
-        if (_init(&listen_fd, &epfd) != 0)
-                exit(1);
-
-        while (true) {
-                int nfds = epoll_wait(epfd, events, MAX_EVENTS, -1);
-
-                if (nfds < 0)
-                        continue;
-
-                route_events(epfd, listen_fd, events, nfds);
-        }
+        while (1)
+             evlp_poll_events(evlp);
 }

@@ -1,0 +1,21 @@
+/*
+-* SPDX-License-Identifier: MIT
+ * Copyright (conn) 2025
+ */
+#ifndef EVLP_H_
+#define EVLP_H_
+
+#include "io/connection.h"
+
+typedef struct evlp evlp_t;
+
+typedef void (*on_read_fn_t) (evlp_t *evlp, struct connection *conn);
+typedef void (*on_write_fn_t) (evlp_t *evlp, struct connection *conn);
+
+evlp_t *evlp_create(int listen_fd, on_read_fn_t on_read,
+                    on_write_fn_t on_write);
+void evlp_poll_events(evlp_t *evlp);
+void evlp_mark_writable(evlp_t *evlp, struct connection *conn);
+void evlp_mark_unwritable(evlp_t *evlp, struct connection *conn);
+
+#endif /* EVLP_H_ */

@@ -100,7 +100,7 @@ void connection_close(struct connection *conn)
                 close(conn->fd);
 }
 
-int connection_buffer_write(struct connection *conn, const void *data, size_t size)
+ssize_t connection_buffer_write(struct connection *conn, const void *data, size_t size)
 {
         struct buffer *wb;
         size_t avail;
@@ -109,13 +109,13 @@ int connection_buffer_write(struct connection *conn, const void *data, size_t si
         avail = buffer_writeable(wb);
 
         if (avail == 0 || size > avail)
-                return -EINVAL;
+                return -ENOBUFS;
 
         memcpy(wb->base + wb->wpos, data, size);
 
         wb->wpos += size;
 
-        return 0;
+        return size;
 }
 
 ssize_t connection_socket_recv(struct connection *conn)

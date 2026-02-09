@@ -6,9 +6,6 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
-#include <r9k/yyjson.h>
-
-#include "utils/log.h"
 
 #define IPC_STRUCT_SIZE (sizeof(ipc_t))
 
@@ -54,4 +51,12 @@ void ipc_header_build(ipc_t *ipc, uint32_t len)
         ipc->type = htonl(0);
         ipc->crc32 = htonl(0);
         ipc->body_len = htonl(len);
+}
+
+void ack(ack_t *ack, uint32_t mid)
+{
+        ack->magic = htonl(ACK_MAGIC);
+        ack->version = htons(ACK_VERSION);
+        ack->flags = htonl(0);
+        ack->mid = htonl(mid);
 }
