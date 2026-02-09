@@ -24,6 +24,8 @@ typedef struct {
         uint32_t body_len;  // +4 消息体长度
 } __attribute__((__packed__)) ipc_t;
 
+#define IPC_STRUCT_SIZE (sizeof(ipc_t))
+
 typedef struct {
         uint32_t magic;     // +4 魔数
         uint16_t version;   // +2 协议版本

@@ -8,8 +8,6 @@
 #include <errno.h>
 #include <r9k/compiler_attrs.h>
 
-#define IPC_STRUCT_SIZE (sizeof(ipc_t))
-
 __attr_always_inline
 static inline uint32_t _magic(uint8_t *buf, size_t size)
 {
@@ -60,7 +58,7 @@ ssize_t ipc_header_unpack(ipc_t *ipc, uint8_t *buf, size_t size)
         if (ipc->body_len > (size - off))
                 return -ENODATA;
 
-        return off;
+        return IPC_STRUCT_SIZE;
 }
 
 void ipc_header_build(ipc_t *ipc, uint32_t len)

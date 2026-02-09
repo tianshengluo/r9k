@@ -15,8 +15,8 @@
 #include "utils/cntl.h"
 #include "utils/log.h"
 
-#define RB_MAX   4096
-#define WB_MAX   8192
+#define RB_MAX   8192
+#define WB_MAX   16384
 #define IDLE_MAX 120
 
 static void _connection_active(struct connection *conn)

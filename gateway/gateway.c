@@ -89,7 +89,7 @@ static uint64_t ipc_body_valid(const char *data)
 
 err:
         yyjson_doc_free(doc);
-        return -EINVAL;
+        return -1;
 }
 
 static void sendack(evlp_t *evlp, struct connection * conn, uint64_t mid)
@@ -113,7 +113,8 @@ static ssize_t try_unpack_ipc(evlp_t *evlp, struct connection *conn)
         ssize_t r;
         struct buffer *rb = conn->rb;
         uint8_t *start_buf;
-        uint64_t mid;
+        ssize_t mid;
+        ssize_t consumed = 0;
 
         while (true) {
                 start_buf = rb->base + rb->rpos;
@@ -123,14 +124,25 @@ static ssize_t try_unpack_ipc(evlp_t *evlp, struct connection *conn)
                 if (r > 0) {
                         char *data = (char *) (start_buf + r);
                         rb->rpos += r + ipc.body_len;
+
                         mid = ipc_body_valid(data);
+
+                        if (mid < 0)
+                                return consumed > 0 ? 0 : -EPROTO;
+
                         log_info("recv client from %s ipc data[%llu]: %s\n",
                                  conn->addr.sin_addr,
                                  mid,
                                  data);
+
                         sendack(evlp, conn, mid);
+                        consumed += r;
+
                         continue;
                 }
+
+                if (consumed > 0)
+                        return 0;
 
                 switch (r) {
                         case -EPROTO:
