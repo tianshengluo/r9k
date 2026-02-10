@@ -18,7 +18,7 @@
 
 extern void client_start(void);
 
-static evlp_t *_init(on_read_fn_t on_read, on_write_fn_t on_write)
+static evlp_t *_init(struct evlp_create_info *p_info)
 {
         int listen_fd;
         evlp_t *evlp;
@@ -31,7 +31,7 @@ static evlp_t *_init(on_read_fn_t on_read, on_write_fn_t on_write)
                 return NULL;
         }
 
-        evlp = evlp_create(listen_fd, on_read, on_write);
+        evlp = evlp_create(listen_fd, p_info);
 
         if (!evlp)
                 exit(1);
@@ -162,6 +162,11 @@ err:
         return -1;
 }
 
+static void on_event_accept(evlp_t *evlp, struct connection *conn)
+{
+
+}
+
 static void on_event_read(evlp_t *evlp, struct connection *conn)
 {
         ssize_t r, err;
@@ -215,7 +220,13 @@ int main(int argc, char **argv)
 
         evlp_t *evlp;
 
-        evlp = _init(on_event_read, on_event_write);
+        struct evlp_create_info evlp_ci = {
+                .on_read = on_event_read,
+                .on_write = on_event_write,
+                .accept_callback = on_event_accept,
+        };
+
+        evlp = _init(&evlp_ci);
 
         while (1)
              evlp_poll_events(evlp);

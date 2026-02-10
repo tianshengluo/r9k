@@ -17,6 +17,7 @@ struct evlp {
         int listen_fd;
         on_read_fn_t on_read;
         on_write_fn_t on_write;
+        accept_callback_fn_t accept_callback;
 };
 
 static void _evlp_on_accept(evlp_t *evlp)
@@ -51,6 +52,9 @@ static void _evlp_on_accept(evlp_t *evlp)
                         log_error("epoll_ctl add client failed: %s\n", syserr);
                         connection_destroy(conn);
                 }
+
+                if (evlp->accept_callback)
+                        evlp->accept_callback(evlp, conn);
         }
 }
 
@@ -80,23 +84,24 @@ static void _evlp_route_events(evlp_t *evlp,
                         continue;
                 }
 
-                if (cur_ev->events & EPOLLIN)
+                if (evlp->on_read && (cur_ev->events & EPOLLIN))
                         evlp->on_read(evlp, (struct connection *) cur_ev->data.ptr);
 
-                if (cur_ev->events & EPOLLOUT)
+                if (evlp->on_write && (cur_ev->events & EPOLLOUT))
                         evlp->on_write(evlp, (struct connection *) cur_ev->data.ptr);
         }
 }
 
-evlp_t *evlp_create(int listen_fd, on_read_fn_t on_read, on_write_fn_t on_write)
+evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
 {
         evlp_t *evlp = malloc(sizeof(evlp_t));
 
         if (!evlp)
                 goto err_null;
 
-        evlp->on_read = on_read;
-        evlp->on_write = on_write;
+        evlp->on_read = info->on_read;
+        evlp->on_write = info->on_write;
+        evlp->accept_callback = info->accept_callback;
 
         evlp->k_fd = epoll_create1(EPOLL_CLOEXEC);
 
