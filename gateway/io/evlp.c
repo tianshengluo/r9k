@@ -9,6 +9,7 @@
 #include <sys/epoll.h>
 
 #include "utils/log.h"
+#include "utils/hashtable.h"
 #include "config.h"
 
 struct evlp {
@@ -17,6 +18,7 @@ struct evlp {
         on_read_fn_t on_read;
         on_write_fn_t on_write;
         accept_callback_fn_t accept_callback;
+        struct hashtable *connections;
 };
 
 static void _evlp_on_accept(evlp_t *evlp)
@@ -54,6 +56,8 @@ static void _evlp_on_accept(evlp_t *evlp)
 
                 if (evlp->accept_callback)
                         evlp->accept_callback(evlp, conn);
+
+                hashtable_put(evlp->connections, (uint64_t) conn->fd, conn);
         }
 }
 
@@ -97,6 +101,11 @@ evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
 
         if (!evlp)
                 goto err_null;
+
+        evlp->connections = hashtable_create();
+
+        if (!evlp->connections)
+                goto err_free;
 
         evlp->on_read = info->on_read;
         evlp->on_write = info->on_write;

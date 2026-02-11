@@ -10,6 +10,7 @@
 
 #define HASHTABLE_LOAD_FACTOR_NUM 3
 #define HASHTABLE_LOAD_FACTOR_DEN 4
+#define HASHTABLE_RESERVE_CAPCITY 32
 
 static inline uint32_t _hash_u64(uint64_t k)
 {
@@ -69,7 +70,7 @@ struct hashtable *hashtable_create()
         if (!ht)
                 return NULL;
 
-        ht->nbuckets = 2;
+        ht->nbuckets = HASHTABLE_RESERVE_CAPCITY;
         ht->size = 0;
         ht->buckets = calloc(ht->nbuckets, sizeof(struct _hash_bucket *));
 
@@ -156,4 +157,44 @@ void *hashtable_remove(struct hashtable *h, uint64_t k)
         }
 
         return NULL;
+}
+
+void hashtable_iter_init(hashtable_iter_t *iter, struct hashtable *h)
+{
+        iter->h = h;
+        iter->i = 0;
+        iter->cur = NULL;
+
+        if (h->size == 0)
+                return;
+
+        while (iter->i < h->nbuckets) {
+                if (h->buckets[iter->i]) {
+                        iter->cur = h->buckets[iter->i];
+                        break;
+                }
+                iter->i++;
+        }
+}
+
+int hashtable_iter_next(hashtable_iter_t *iter, struct hashtable_iter_ent *ent)
+{
+        if (iter->i >= iter->h->nbuckets)
+                return 0;
+
+        while (iter->i < iter->h->nbuckets) {
+                while (iter->cur) {
+                        ent->key = iter->cur->k;
+                        ent->value = iter->cur->v;
+                        iter->cur = iter->cur->next;
+                        return 1;
+                }
+
+                iter->i++;
+
+                if (iter->i < iter->h->nbuckets)
+                        iter->cur = iter->h->buckets[iter->i];
+        }
+
+        return 0;
 }

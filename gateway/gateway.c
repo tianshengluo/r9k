@@ -13,9 +13,9 @@
 #include "io/socket.h"
 #include "io/evlp.h"
 #include "utils/log.h"
+#include "utils/hashtable.h"
 #include "ipc.h"
 #include "config.h"
-#include "utils/hashtable.h"
 
 extern void client_start(void);
 
