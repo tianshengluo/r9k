@@ -9,9 +9,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <r9k/compiler_attrs.h>
+#include <r9k/yyjson.h>
 
 #include "config.h"
-#include "r9k/yyjson.h"
 #include "utils/log.h"
 
 __attr_always_inline

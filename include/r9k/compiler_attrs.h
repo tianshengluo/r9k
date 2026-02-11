@@ -13,7 +13,11 @@
 #  define __attr_unused        __attribute__((unused))
 #  define __attr_noreturn      __attribute__((noreturn))
 #  define __attr_printf(a, b)  __attribute__((format(printf, a, b)))
-#  define __attr_always_inline __attribute__((always_inline))
+#  ifndef __attr_disable_inline
+#    define __attr_always_inline __attribute__((always_inline))
+#  else
+#    define __attr_always_inline
+#  endif
 #else
 #  define __attr_nonnull(...)
 #  define __attr_unused
