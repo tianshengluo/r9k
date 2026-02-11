@@ -13,7 +13,6 @@
 #include "io/socket.h"
 #include "io/evlp.h"
 #include "utils/log.h"
-#include "utils/hashtable.h"
 #include "ipc.h"
 #include "config.h"
 
@@ -93,13 +92,13 @@ static void on_event_read(evlp_t *evlp, struct connection *conn)
         }
 
 err:
-        connection_destroy(conn);
+        evlp_connection_close(evlp, conn);
 }
 
 static void on_event_write(evlp_t *evlp, struct connection *conn)
 {
         if (connection_socket_send(conn) != 0)
-                connection_destroy(conn);
+                evlp_connection_close(evlp, conn);
 
         evlp_mark_unwritable(evlp, conn);
 }

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 #include <r9k/readline.h>
 #include <r9k/yyjson.h>
 
@@ -15,6 +16,9 @@
 
 static size_t off = 0;
 static char buf[64 * 1024];
+
+#define MAX_FDS 512
+int fds[MAX_FDS];
 
 static void writebuf(const char *message)
 {
@@ -46,14 +50,19 @@ static void writebuf(const char *message)
 
 void client_start()
 {
+        srand(time(NULL));
+
         int fd;
-        ssize_t r;
 
-        fd = tcp_connect("127.0.0.1", PORT);
+        for (int i = 0; i < MAX_FDS; i++) {
+                fd = tcp_connect("127.0.0.1", PORT);
 
-        if (fd < 0) {
-                log_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
-                exit(1);
+                if (fd < 0) {
+                        log_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
+                        exit(1);
+                }
+
+                fds[i] = fd;
         }
 
         char prompt[64];
@@ -61,6 +70,7 @@ void client_start()
 
         while (1) {
                 off = 0;
+                fd = fds[rand() % MAX_FDS + 1];
 
                 snprintf(prompt, sizeof(prompt), "%d > ", fd);
 
@@ -69,21 +79,8 @@ void client_start()
                 if (!line)
                         continue;
 
-reconnect:
-                if (fd < 0) {
-                        fd = tcp_connect("127.0.0.1", PORT);
-                        log_info("reconnect fd: %d\n", fd);
-                }
-
                 writebuf(line);
-
-                r = send(fd, &buf, off, MSG_NOSIGNAL);
-
-                if (r < 0) {
-                        close(fd);
-                        fd = -1;
-                        goto reconnect;
-                }
+                send(fd, &buf, off, MSG_NOSIGNAL);
         }
 
 }

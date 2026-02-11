@@ -21,7 +21,9 @@ struct evlp_create_info {
 
 evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info);
 void evlp_poll_events(evlp_t *evlp);
+
 void evlp_mark_writable(evlp_t *evlp, struct connection *conn);
 void evlp_mark_unwritable(evlp_t *evlp, struct connection *conn);
+void evlp_connection_close(evlp_t *evlp, struct connection *conn);
 
 #endif /* EVLP_H_ */

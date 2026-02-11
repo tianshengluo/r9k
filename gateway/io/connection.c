@@ -2,6 +2,7 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (conn) 2025
  */
+#define CONNECTION_EXTERN_FUNC
 #include "connection.h"
 
 #include <stdlib.h>
@@ -34,6 +35,30 @@ static void _connection_reset(struct connection *conn)
         conn->idle_timeout_sec = 0;
 }
 
+void connection_close(struct connection *conn)
+{
+        if (!isbadf(conn->fd))
+                close(conn->fd);
+
+        conn->closed = 1;
+}
+
+void connection_destroy(struct connection *conn)
+{
+        if (!conn)
+                return;
+
+        connection_close(conn);
+
+        if (conn->rb)
+                buffer_free(conn->rb);
+
+        if (conn->wb)
+                buffer_free(conn->wb);
+
+        free(conn);
+}
+
 struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
 {
         struct connection *conn;
@@ -63,37 +88,11 @@ struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
 
         memcpy(&conn->addr, addr, sizeof(struct host_sockaddr_in));
 
-        log_debug("accept connection %p from %s, fd=%d, rb=%p, wb=%p\n",
-                  conn,
-                  conn->addr.sin_addr,
-                  fd,
-                  conn->rb,
-                  conn->wb);
-
         return conn;
 
 err:
         connection_destroy(conn);
         return NULL;
-}
-
-void connection_destroy(struct connection *conn)
-{
-        if (!conn)
-                return;
-
-        log_debug("destroying connection %p\n", conn);
-
-        if (!isbadf(conn->fd))
-                close(conn->fd);
-
-        if (conn->rb)
-                buffer_free(conn->rb);
-
-        if (conn->wb)
-                buffer_free(conn->wb);
-
-        free(conn);
 }
 
 void connection_set_userdata(struct connection *conn, void *udata)
@@ -104,12 +103,6 @@ void connection_set_userdata(struct connection *conn, void *udata)
 void *connection_get_userdata(struct connection *conn)
 {
         return conn->udata;
-}
-
-void connection_close(struct connection *conn)
-{
-        if (!isbadf(conn->fd))
-                close(conn->fd);
 }
 
 ssize_t connection_buffer_write(struct connection *conn, const void *data, size_t size)
@@ -155,10 +148,8 @@ ssize_t connection_socket_recv(struct connection *conn)
                         continue;
                 }
 
-                if (n == 0) {
-                        log_debug("connection %p recv close\n", conn);
+                if (n == 0)
                         return 0;
-                }
 
                 /* other syscall error */
                 RETRY_IF_EINTR();
@@ -166,12 +157,8 @@ ssize_t connection_socket_recv(struct connection *conn)
                 if (is_eagain())
                         return total;
 
-                if (errno == ECONNRESET) {
-                        log_debug("connection %p reset by peer\n", conn);
+                if (errno == ECONNRESET)
                         return -errno;
-                }
-
-                log_debug("connection %p recv failed, cause: %s\n", conn, syserr);
 
                 return -EIO;
         }

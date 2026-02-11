@@ -159,7 +159,7 @@ void *hashtable_remove(struct hashtable *h, uint64_t k)
         return NULL;
 }
 
-void hashtable_iter_init(hashtable_iter_t *iter, struct hashtable *h)
+void hashtable_iter_init(struct hashtable_iter *iter, struct hashtable *h)
 {
         iter->h = h;
         iter->i = 0;
@@ -177,7 +177,7 @@ void hashtable_iter_init(hashtable_iter_t *iter, struct hashtable *h)
         }
 }
 
-int hashtable_iter_next(hashtable_iter_t *iter, struct hashtable_iter_ent *ent)
+int hashtable_iter_next(struct hashtable_iter *iter, struct hashtable_iter_ent *ent)
 {
         if (iter->i >= iter->h->nbuckets)
                 return 0;

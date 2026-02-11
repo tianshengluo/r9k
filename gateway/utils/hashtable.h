@@ -20,11 +20,11 @@ struct hashtable {
         uint32_t size;
 };
 
-typedef struct {
+struct hashtable_iter {
         const struct hashtable *h;
         uint32_t i; /* bucket index */
         struct _hash_bucket *cur;
-} hashtable_iter_t;
+};
 
 struct hashtable_iter_ent {
         uint32_t key;
@@ -38,9 +38,10 @@ int hashtable_put(struct hashtable *h, uint64_t k, void* v);
 void *hashtable_get(struct hashtable *h, uint64_t k);
 void *hashtable_remove(struct hashtable *h, uint64_t k);
 
-void hashtable_iter_init(hashtable_iter_t *iter, struct hashtable *h);
-int hashtable_iter_next(hashtable_iter_t *iter, struct hashtable_iter_ent *ent); /* return true or false */
+#define HASHTABLE_IS_EMPTY(h) ((h)->size == 0)
+#define HASHTABLE_CONTAINS(h, k) (hashtable_get((h), (k)) != NULL)
 
-#define HASHTABLE_CONTAINS(h, k) (hashtable_get(h, k) != NULL)
+void hashtable_iter_init(struct hashtable_iter *iter, struct hashtable *h);
+int hashtable_iter_next(struct hashtable_iter *iter, struct hashtable_iter_ent *ent); /* return true or false */
 
 #endif /* _HASHTABLE_H_ */
