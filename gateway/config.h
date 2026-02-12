@@ -11,8 +11,6 @@
 
 #define RB_MAX       8192
 #define WB_MAX       16384
-#define IDLE_MAX     30
-
-#define CONNECTION_TIMEOUT_SEC  15
+#define IDLE_MAX     15
 
 #endif /* CONFIG_H_ */

@@ -60,7 +60,7 @@ static int _init_timer(evlp_t *evlp)
         struct itimerspec its = {
                 .it_value.tv_sec = 0,
                 .it_value.tv_nsec = 1,
-                .it_interval.tv_sec = CONNECTION_TIMEOUT_SEC,
+                .it_interval.tv_sec = 5,
                 .it_interval.tv_nsec = 0,
         };
 
