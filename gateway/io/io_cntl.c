@@ -2,7 +2,7 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025
  */
-#include "../utils/cntl.h"
+#include "io/io_cntl.h"
 
 #include <sys/fcntl.h>
 #include <errno.h>
