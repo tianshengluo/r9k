@@ -21,10 +21,11 @@ struct evlp {
         int epfd;
         int listen_fd;
         int timer_fd;
+        int emfile_guard_fd;
         on_read_fn_t on_read;
         on_write_fn_t on_write;
         on_accept_fn_t on_accept;
-        struct hashtable *conns;
+        struct hashtable *actives;
         struct connection *close_head;
         uint32_t emfile_conn_cnt; /* connection count when EMFILE */
         int reject_new_conn; /* reject new connection */
@@ -33,6 +34,19 @@ struct evlp {
 #define CLOSE_HEAD_ADD(_evlp, conn)            \
         (conn)->next = (_evlp)->close_head;    \
         (_evlp)->close_head = (conn)
+
+static void _evlp_hold_emfile_guard(evlp_t *evlp)
+{
+        evlp->emfile_guard_fd = open("/dev/null", O_RDONLY);
+        log_info("evlp hold emfile guard fd: %d\n", evlp->emfile_guard_fd);
+}
+
+static void _evlp_release_emfile_guard(evlp_t *evlp)
+{
+        log_info("evlp release emfile guard fd: %d\n", evlp->emfile_guard_fd);
+        close(evlp->emfile_guard_fd);
+        evlp->emfile_guard_fd = -1;
+}
 
 static int _init_timer(evlp_t *evlp)
 {
@@ -93,15 +107,15 @@ static void _evlp_on_timer(evlp_t *evlp)
         uint64_t _tv_tmp;
         read(evlp->timer_fd, &_tv_tmp, sizeof(_tv_tmp));
 
-        if (HASHTABLE_IS_EMPTY(evlp->conns))
+        if (HASHTABLE_IS_EMPTY(evlp->actives))
                 return;
 
         time_t now = time(NULL);
-        uint64_t arr[evlp->conns->size];
+        uint64_t arr[HASHTABLE_SIZE(evlp->actives)];
         size_t arrsize = 0;
 
         struct hashtable_iter iter;
-        hashtable_iter_init(&iter, evlp->conns);
+        hashtable_iter_init(&iter, evlp->actives);
 
         struct hashtable_iter_ent ent;
         while (hashtable_iter_next(&iter, &ent)) {
@@ -116,15 +130,15 @@ static void _evlp_on_timer(evlp_t *evlp)
 
         for (size_t i = 0; i < arrsize; i++) {
                 struct connection *conn =
-                        (struct connection *) hashtable_remove(evlp->conns, arr[i]);
-                evlp_connection_shutdown(evlp, conn);
+                        (struct connection *) hashtable_remove(evlp->actives, arr[i]);
+                evlp_close(evlp, conn);
         }
 
         if (arrsize > 0)
                 log_info("evlp timer destroy %zu conns.\n", arrsize);
 }
 
-static void _evlp_connection_gc(evlp_t *evlp)
+static void _evlp_gc(evlp_t *evlp)
 {
         struct connection *n;
 
@@ -140,28 +154,33 @@ static void _evlp_connection_gc(evlp_t *evlp)
 static void _evlp_enable_reject(evlp_t *evlp)
 {
         evlp->reject_new_conn = 1;
-        evlp->emfile_conn_cnt = evlp->conns->size;
+        evlp->emfile_conn_cnt = HASHTABLE_SIZE(evlp->actives);
 
         epoll_ctl(evlp->epfd,
                   EPOLL_CTL_DEL,
                   evlp->listen_fd,
                   NULL);
 
+        _evlp_release_emfile_guard(evlp);
+
         log_warn("evlp enable reject mode, emfile connection count: %u\n",
                  evlp->emfile_conn_cnt);
 }
 
-static void _evlp_check_reject(evlp_t *evlp)
+static void _evlp_try_disable_reject(evlp_t *evlp)
 {
         if (!evlp->reject_new_conn)
                 return;
 
-        if (evlp->conns->size < evlp->emfile_conn_cnt * 65 / 100) {
+        /* 流量下降 35% 后重新开放客户端连接 */
+        if (HASHTABLE_SIZE(evlp->actives) < evlp->emfile_conn_cnt * 65 / 100) {
                 evlp->reject_new_conn = 0;
+
                 _evlp_add_listen_sock(evlp, evlp->listen_fd);
+                _evlp_hold_emfile_guard(evlp);
 
                 log_warn("evlp disable reject mode, active connection count: %u\n",
-                         evlp->conns->size);
+                         HASHTABLE_SIZE(evlp->actives));
         }
 }
 
@@ -183,8 +202,13 @@ static void _evlp_on_accept(evlp_t *evlp)
                         if (is_emfile()) {
                                 log_error("accept new connection failed %s\n", syserr);
                                 _evlp_enable_reject(evlp);
-                                break;
+                                continue;
                         }
+                }
+
+                if (evlp->reject_new_conn) {
+                        close(cli);
+                        continue;
                 }
 
                 conn = connection_create(cli, &addr);
@@ -207,7 +231,7 @@ static void _evlp_on_accept(evlp_t *evlp)
                 if (evlp->on_accept)
                         evlp->on_accept(evlp, conn);
 
-                hashtable_put(evlp->conns, (uint64_t) conn->fd, conn);
+                hashtable_put(evlp->actives, (uint64_t) conn->fd, conn);
         }
 }
 
@@ -226,7 +250,7 @@ static void _evlp_route_events(evlp_t *evlp,
                         || cur_ev->events & EPOLLERR) {
                         if (cur_ev->data.ptr) {
                                 conn = (struct connection *) cur_ev->data.ptr;
-                                evlp_connection_shutdown(evlp, conn);
+                                evlp_close(evlp, conn);
                                 continue;
                         }
                 }
@@ -256,10 +280,12 @@ evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info)
         if (!evlp)
                 goto err_null;
 
-        evlp->conns = hashtable_create();
+        _evlp_hold_emfile_guard(evlp);
+
+        evlp->actives = hashtable_create();
         evlp->close_head = NULL;
 
-        if (!evlp->conns)
+        if (!evlp->actives)
                 goto err_free;
 
         evlp->on_read = info->on_read;
@@ -289,6 +315,28 @@ err_null:
         return NULL;
 }
 
+void evlp_destroy(evlp_t *evlp)
+{
+        if (!evlp)
+                return;
+
+        close(evlp->emfile_guard_fd);
+        close(evlp->timer_fd);
+        close(evlp->listen_fd);
+
+        struct hashtable_iter iter;
+        hashtable_iter_init(&iter, evlp->actives);
+
+        struct hashtable_iter_ent ent;
+        while (hashtable_iter_next(&iter, &ent))
+                evlp_close(evlp, (struct connection *) ent.value);
+
+        _evlp_gc(evlp);
+
+        hashtable_destroy(evlp->actives);
+        close(evlp->epfd);
+}
+
 void evlp_poll_events(evlp_t *evlp)
 {
         int nfds;
@@ -306,11 +354,11 @@ void evlp_poll_events(evlp_t *evlp)
         }
 
         _evlp_route_events(evlp, events, nfds);
-        _evlp_connection_gc(evlp);
-        _evlp_check_reject(evlp);
+        _evlp_gc(evlp);
+        _evlp_try_disable_reject(evlp);
 }
 
-void evlp_mark_writable(evlp_t *evlp, struct connection *conn)
+void evlp_enable_write(evlp_t *evlp, struct connection *conn)
 {
         if (!conn->writable) {
                 conn->writable = 1;
@@ -321,13 +369,13 @@ void evlp_mark_writable(evlp_t *evlp, struct connection *conn)
                 };
 
                 if (epoll_ctl(evlp->epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p writable failed: %s\n", conn, syserr);
+                        log_error("enable connection %p writable failed: %s\n", conn, syserr);
                         connection_destroy(conn);
                 }
         }
 }
 
-void evlp_mark_unwritable(evlp_t *evlp, struct connection *conn)
+void evlp_disable_write(evlp_t *evlp, struct connection *conn)
 {
         if (conn->writable) {
                 conn->writable = 0;
@@ -338,20 +386,20 @@ void evlp_mark_unwritable(evlp_t *evlp, struct connection *conn)
                 };
 
                 if (epoll_ctl(evlp->epfd, EPOLL_CTL_MOD, conn->fd, &ev) < 0) {
-                        log_error("mark connection %p unwritable failed: %s\n", conn, syserr);
-                        evlp_connection_shutdown(evlp, conn);
+                        log_error("disable connection %p write failed: %s\n", conn, syserr);
+                        evlp_close(evlp, conn);
                 }
         }
 }
 
-void evlp_connection_shutdown(evlp_t *evlp, struct connection *conn)
+void evlp_close(evlp_t *evlp, struct connection *conn)
 {
         if (conn->state == CONN_STATE_CLOSING)
                 return;
 
         conn->state = CONN_STATE_CLOSING;
 
-        hashtable_remove(evlp->conns, (uint64_t) conn->fd);
+        hashtable_remove(evlp->actives, (uint64_t) conn->fd);
 
         epoll_ctl(evlp->epfd,
                   EPOLL_CTL_DEL,

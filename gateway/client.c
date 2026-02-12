@@ -17,7 +17,7 @@
 static size_t off = 0;
 static char buf[64 * 1024];
 
-#define MAX_FDS 128
+#define MAX_FDS 65535
 int fds[MAX_FDS];
 
 static void writebuf(const char *message)
@@ -59,7 +59,7 @@ void client_start()
 
                 if (fd < 0) {
                         log_error("connect to 127.0.0.1 %d failed, cause: %s\n", PORT, syserr);
-                        exit(1);
+                        continue;
                 }
 
                 fds[i] = fd;

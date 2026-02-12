@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 
 #include "socket.h"
-#include "utils/cntl.h"
+#include "io_cntl.h"
 #include "utils/log.h"
 #include "config.h"
 

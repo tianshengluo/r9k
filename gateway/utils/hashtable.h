@@ -38,6 +38,7 @@ int hashtable_put(struct hashtable *h, uint64_t k, void* v);
 void *hashtable_get(struct hashtable *h, uint64_t k);
 void *hashtable_remove(struct hashtable *h, uint64_t k);
 
+#define HASHTABLE_SIZE(h) ((h)->size)
 #define HASHTABLE_IS_EMPTY(h) ((h)->size == 0)
 #define HASHTABLE_CONTAINS(h, k) (hashtable_get((h), (k)) != NULL)
 
