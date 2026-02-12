@@ -40,7 +40,7 @@ void connection_close(struct connection *conn)
         if (!isbadf(conn->fd))
                 close(conn->fd);
 
-        conn->closed = 1;
+        conn->state = CONN_STATE_CLOSING;
 }
 
 void connection_destroy(struct connection *conn)
@@ -72,6 +72,7 @@ struct connection *connection_create(int fd, struct host_sockaddr_in *addr)
                 return NULL;
 
         conn->fd = fd;
+        conn->state = CONN_STATE_ACTIVE;
 
         conn->rb = buffer_alloc(RB_MAX);
 

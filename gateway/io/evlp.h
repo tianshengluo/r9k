@@ -11,12 +11,12 @@ typedef struct evlp evlp_t;
 
 typedef void (*on_read_fn_t) (evlp_t *evlp, struct connection *conn);
 typedef void (*on_write_fn_t) (evlp_t *evlp, struct connection *conn);
-typedef void (*accept_callback_fn_t) (evlp_t *evlp, struct connection *conn);
+typedef void (*on_accept_fn_t) (evlp_t *evlp, struct connection *conn);
 
 struct evlp_create_info {
         on_read_fn_t on_read;
         on_write_fn_t on_write;
-        accept_callback_fn_t accept_callback;
+        on_accept_fn_t on_accept;
 };
 
 evlp_t *evlp_create(int listen_fd, struct evlp_create_info *info);
@@ -24,6 +24,6 @@ void evlp_poll_events(evlp_t *evlp);
 
 void evlp_mark_writable(evlp_t *evlp, struct connection *conn);
 void evlp_mark_unwritable(evlp_t *evlp, struct connection *conn);
-void evlp_connection_close(evlp_t *evlp, struct connection *conn);
+void evlp_connection_shutdown(evlp_t *evlp, struct connection *conn);
 
 #endif /* EVLP_H_ */

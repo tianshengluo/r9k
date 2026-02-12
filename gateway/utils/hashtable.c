@@ -40,7 +40,6 @@ static void _hashtable_ensure_capcity(struct hashtable *h)
                 return;
         }
 
-
         for (uint32_t i = 0; i < h->nbuckets; i++) {
                 n = h->buckets[i];
                 

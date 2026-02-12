@@ -1,6 +1,6 @@
 # Makefile
 CC        := gcc
-CFLAGS    := -Wextra -O3 -std=c17
+CFLAGS    := -Wextra -O0 -std=c17
 BUILDDIR  := ../build
 LIBDIR    := $(BUILDDIR)/lib
 BINDIR    := $(BUILDDIR)/bin

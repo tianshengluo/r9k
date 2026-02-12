@@ -10,15 +10,21 @@
 #include "buffer.h"
 #include "socket.h"
 
+typedef enum {
+        CONN_STATE_ACTIVE,
+        CONN_STATE_CLOSING,
+} connection_state_t;
+
 struct connection {
         int fd;
         struct buffer *rb;
         struct buffer *wb;
+        connection_state_t state;
         uint8_t writable;
         struct host_sockaddr_in addr;
         time_t last_active_ts;
         uint32_t idle_timeout_sec;
-        uint8_t closed;
+        struct connection *next;
         void *udata;
 };
 

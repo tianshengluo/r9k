@@ -92,13 +92,13 @@ static void on_event_read(evlp_t *evlp, struct connection *conn)
         }
 
 err:
-        evlp_connection_close(evlp, conn);
+        evlp_connection_shutdown(evlp, conn);
 }
 
 static void on_event_write(evlp_t *evlp, struct connection *conn)
 {
         if (connection_socket_send(conn) != 0)
-                evlp_connection_close(evlp, conn);
+                evlp_connection_shutdown(evlp, conn);
 
         evlp_mark_unwritable(evlp, conn);
 }
