@@ -18,17 +18,24 @@
 #include "config.h"
 
 struct evlp {
-        int epfd;
-        int listen_fd;
-        int timer_fd;
-        int emfile_guard_fd;
-        on_read_fn_t on_read;
-        on_write_fn_t on_write;
-        on_accept_fn_t on_accept;
-        struct hashtable *actives;
-        struct connection *close_head;
-        uint32_t emfile_conn_cnt; /* connection count when EMFILE */
-        int reject_new_conn; /* reject new connection */
+        /* core epoll and listening infrastructure */
+        int                     epfd;               /* epoll instance */
+        int                     listen_fd;          /* listening socket */
+        int                     timer_fd;           /* timeout/keepalive timer */
+
+        /* connection management */
+        struct hashtable        *actives;           /* active connections hash */
+        struct connection       *close_head;        /* deferred close list (lifo) */
+
+        /* callbacks - usually kept together */
+        on_accept_fn_t          on_accept;
+        on_read_fn_t            on_read;
+        on_write_fn_t           on_write;
+
+        /* EMFILE / resource exhaustion handling */
+        int                     emfile_guard_fd;
+        uint32_t                emfile_conn_cnt;    /* conn count when EMFILE hit */
+        int                     reject_new_conn;    /* are we in reject-new-conns mode? */
 };
 
 #define CLOSE_HEAD_ADD(_evlp, conn)            \
