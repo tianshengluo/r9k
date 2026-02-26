@@ -42,11 +42,7 @@ static evlp_t *_init(struct evlp_create_info *p_info)
 static ssize_t _ack_serialize_and_process(struct buffer *rb)
 {
         ack_t ack;
-
-        if (ack_proto_deserialize(rb, &ack) != 0)
-                return -EINVAL;
-
-        return 0;
+        return ack_proto_deserialize(rb, &ack);
 }
 
 static ssize_t serialize_and_process(struct connection *conn)
@@ -70,7 +66,7 @@ static ssize_t serialize_and_process(struct connection *conn)
                 log_info("ipc recv body %s\n", stack_buf);
         }
 
-        return 0;
+        return r;
 }
 
 static void on_event_accept(evlp_t *evlp, struct connection *conn)

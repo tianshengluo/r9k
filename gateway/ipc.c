@@ -180,5 +180,5 @@ ssize_t ack_proto_deserialize(struct buffer *rb, ack_t *dst)
 
         buffer_skip_rpos(rb, off);
 
-        return 0;
+        return off;
 }
