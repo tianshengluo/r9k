@@ -52,6 +52,9 @@ static ssize_t _ipc_buffer_valid(ipc_t *ipc, uint8_t *buf, size_t size)
         ipc->tlv = ntohl(*(uint32_t *) (buf + off));
         off += sizeof(uint32_t);
 
+        if (ipc->tlv > MAX_TLV)
+                return -EMSGSIZE;
+
         if (ipc->tlv > (size - off))
                 return -ENODATA;
 
@@ -103,6 +106,8 @@ ssize_t ipc_proto_deserialize(struct buffer *rb, char *dst, size_t size)
                         log_error("invalid protocol data, parse ipc_t failed\n");
                         return r;
                 case -ENODATA:
+                        return r;
+                case -EMSGSIZE:
                         return r;
                 default:
                         log_error("unknown ipc_unpack_buffer() return errno: %ld\n", r);

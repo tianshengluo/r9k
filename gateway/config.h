@@ -13,6 +13,7 @@
 #define MAX_CNT         SIZE_KB( 4)     /* max message content */
 #define MAX_RB          SIZE_KB( 8)     /* max read buffer */
 #define MAX_WB          SIZE_KB(32)     /* max write buffer */
+#define MAX_TLV         MAX_WB          /* max TLV body */
 
 #define MAX_IDL                 15      /* max idle timeout sec */
 
