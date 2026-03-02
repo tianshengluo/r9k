@@ -105,7 +105,7 @@ static void process_stream(struct option *f,
                 int err = 0;
                 total = stream_count(stdin, m, l, &err);
                 PANIC_IF(total < 0, "ERROR: %s\n", strerror(err));
-                printf("%ld\n", total);
+                printf("%8ld\n", total);
                 return;
         }
 
