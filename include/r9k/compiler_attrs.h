@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025 Varketh Nockrath
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #ifndef COMPILER_ATTRUBUTES_H_
 #define COMPILER_ATTRUBUTES_H_

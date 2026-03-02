@@ -6,7 +6,7 @@
  * 不依赖第三方库，无复杂状态机。
  * 在 raw 模式下精确维护光标与缓冲区索引对应关系。
  *
- * author   : Varketh Nockrath
+ * author   : Luo Tiansheng
  * created  : 2025/10/24
  */
 #ifndef READLINE_H_

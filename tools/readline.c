@@ -6,7 +6,7 @@
  * 实现常用字符编辑、光标移动与缓冲区索引同步。
  * 支持主流 ESC 控制序列。
  *
- * author: Varketh Nockrath
+ * author: Luo Tiansheng
  * created: 2025/10/24
  */
 #include <r9k/readline.h>

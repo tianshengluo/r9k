@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #include <r9k/ssl/md5.h>
 #include <stdint.h>

@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025 Varketh Nockrath
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #include <r9k/io_utils.h>
 #include <stdlib.h>

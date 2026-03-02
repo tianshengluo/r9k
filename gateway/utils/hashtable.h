@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #ifndef _HASHTABLE_H_
 #define _HASHTABLE_H_

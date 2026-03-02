@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #ifndef GW_ENDIAN_H_
 #define GW_ENDIAN_H_

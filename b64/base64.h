@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025 TIM SHING. LAW
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #ifndef BASE64_H_
 #define BASE64_H_

@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (C) 2025 Varketh Nockrath
+ * Copyright (C) 2025 Luo Tiansheng
  */
 #ifndef SIZE_H_
 #define SIZE_H_
