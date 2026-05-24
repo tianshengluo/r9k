@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 Varketh Nockrath
+ * Copyright (c) 2025 Luo Tiansheng
  */
 #include <carmory/argparse.h>
 #include <stdlib.h>

@@ -1,14 +1,15 @@
 # Makefile
 CC        := gcc
 CFLAGS    := -Wextra -O3 -std=c17
-BUILDDIR  := ../build
+ROOTDIR   := $(abspath .)
+BUILDDIR  := $(ROOTDIR)/build
 LIBDIR    := $(BUILDDIR)/lib
 BINDIR    := $(BUILDDIR)/bin
-INCLUDES  := -isystem ../include -isystem ../tools/include
+INCLUDES  := -isystem $(ROOTDIR)/include -isystem $(ROOTDIR)/tools/include
 CFLAGS    += $(INCLUDES)
 LINKDIR   := -L$(BUILDDIR)/lib
 LIBS      := tools
-SUBDIRS   := strc url clip b64 calc rsh streq misc
+SUBDIRS   := strc url clip b64 calc rsh streq misc test/readline
 MAKEFLAGS += --no-print-directory
 
 UNAME     := $(shell uname -s)

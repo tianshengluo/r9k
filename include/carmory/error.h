@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 Varketh Nockrath
+ * Copyright (c) 2025 Luo Tiansheng
  */
 #ifndef CINAP_H_
 #define CINAP_H_

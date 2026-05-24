@@ -1,6 +1,6 @@
 /*
 -* SPDX-License-Identifier: MIT
- * Copyright (c) 2025 Varketh Nockrath
+ * Copyright (c) 2025 Luo Tiansheng
  */
 #ifndef BASE64_H_
 #define BASE64_H_

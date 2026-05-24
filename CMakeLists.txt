@@ -12,4 +12,10 @@ add_subdirectory(calc)
 add_subdirectory(rsh)
 add_subdirectory(streq)
 add_subdirectory(misc)
-add_subdirectory(gateway)
+
+# test
+add_subdirectory(test/readline)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(gateway)
+endif()
