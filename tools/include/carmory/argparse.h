@@ -108,12 +108,12 @@ struct option
         const char** vals;              /* array of consumed values, in parse order */
 };
 
-int _argparse_callback_help(struct argparse *ap, struct option *opt);
-int _argparse_callback_version(struct argparse *ap, struct option *opt);
+int internal_argparse_callback_help(struct argparse *ap, struct option *opt);
+int internal_argparse_callback_version(struct argparse *ap, struct option *opt);
 
 /* Internal callback function for help/version option. */
-#define ap_callback_help _argparse_callback_help
-#define ap_callback_version _argparse_callback_version
+#define ap_callback_help internal_argparse_callback_help
+#define ap_callback_version internal_argparse_callback_version
 
 /* If a result doesn't equal to 0 that mean error. */
 struct argparse *argparse_create(const char *name, const char *version);
@@ -133,9 +133,9 @@ int argparse_addn(struct argparse *ap, struct option **result_slot, const char *
  * Each call to this macro creates an independent group.
  * Options in the same group cannot appear simultaneously. */
 #define argparse_mutual_exclude(ap, ...) \
-        _argparse_mutual_exclude((ap), __VA_ARGS__, NULL)
+        internal_argparse_mutual_exclude((ap), __VA_ARGS__, NULL)
 
-void _argparse_mutual_exclude(struct argparse *ap, ...); // NOLINT(*-reserved-identifier)
+void internal_argparse_mutual_exclude(struct argparse *ap, ...); // NOLINT(*-reserved-identifier)
 
 /* Parsing arguments */
 int argparse_run(struct argparse *ap, int argc, char *argv[]);

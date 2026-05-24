@@ -511,14 +511,14 @@ static void check_warn_exists(struct argparse *ap, const char *longopt, const ch
         }
 }
 
-int _argparse_callback_help(struct argparse *ap, struct option *opt)
+int internal_argparse_callback_help(struct argparse *ap, struct option *opt)
 {
         (void) opt;
         printf("%s", argparse_help(ap));
         exit(0);
 }
 
-int _argparse_callback_version(struct argparse *ap, struct option *opt)
+int internal_argparse_callback_version(struct argparse *ap, struct option *opt)
 {
         (void) opt;
         printf("%s %s\n", ap->name, ap->version);
@@ -708,7 +708,7 @@ static int callback_exec(struct argparse *ap)
         return 0;
 }
 
-void _argparse_mutual_exclude(struct argparse *ap, ...)
+void internal_argparse_mutual_exclude(struct argparse *ap, ...)
 {
         va_list va;
         struct option **slot;
@@ -731,7 +731,7 @@ void _argparse_mutual_exclude(struct argparse *ap, ...)
         va_end(va);
 }
 
-static int _argparse_sync_stat(struct argparse *ap)
+static int argparse_sync_stat(struct argparse *ap)
 {
         if (ap->_stat_flags & A_STAT_RUN) {
                 error_rec(ap, "already call argparse_run()");
@@ -744,7 +744,7 @@ static int _argparse_sync_stat(struct argparse *ap)
         return 0;
 }
 
-static int _argparse_dispatch(struct argparse *ap,
+static int argparse_dispatch(struct argparse *ap,
                               struct argparse *cmd,
                               struct ptrvec *args_copy,
                               int start_index,
@@ -811,13 +811,13 @@ static int _argparse_dispatch(struct argparse *ap,
         return r;
 }
 
-static int _argparse_run(struct argparse *ap, int argc, char *argv[])
+static int parse(struct argparse *ap, int argc, char *argv[])
 {
         int r;
         int i = 1; /* skip self */
         struct argparse *cmd = NULL;
 
-        _argparse_sync_stat(ap);
+        argparse_sync_stat(ap);
 
         if (!ap || !argv || argc <= 0)
                 return A_ERROR_CONFIG_INVALID;
@@ -833,13 +833,13 @@ static int _argparse_run(struct argparse *ap, int argc, char *argv[])
                         goto out;
         }
 
-        r = _argparse_dispatch(ap, cmd, &args_copy, i, argc, argv);
+        r = argparse_dispatch(ap, cmd, &args_copy, i, argc, argv);
         if (r != 0)
                 goto out;
 
         /* if include cmd parsing for sub command. */
         if (cmd) {
-                if ((r = _argparse_run(cmd, (int) ptrvec_count(&args_copy), (char **) args_copy.items)) != 0) {
+                if ((r = parse(cmd, (int) ptrvec_count(&args_copy), (char **) args_copy.items)) != 0) {
                         snprintf(ap->error, sizeof(ap->error), "%s", cmd->error);
                         return r;
                 }
@@ -872,7 +872,7 @@ int argparse_run(struct argparse *ap, int argc, char *argv[])
                 return A_ERROR_RUNTIME_CALLBACK_FAIL;
         }
 
-        return _argparse_run(ap, argc, argv);
+        return parse(ap, argc, argv);
 }
 
 const char *argparse_error(struct argparse *ap)
