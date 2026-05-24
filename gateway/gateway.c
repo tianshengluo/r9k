@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/epoll.h>
-#include <r9k/compiler_attrs.h>
+#include <carmory/compiler_attrs.h>
 
 #include "io/connection.h"
 #include "io/socket.h"

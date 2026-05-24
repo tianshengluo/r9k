@@ -2,7 +2,7 @@
 -* SPDX-License-Identifier: MIT
  * Copyright (c) 2025 Varketh Nockrath
  */
-#include <r9k/string.h>
+#include <carmory/string.h>
 #include <ctype.h>
 
 int is_str_blank(const char *str)
