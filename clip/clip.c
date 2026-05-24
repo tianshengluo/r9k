@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <carmory/argparse.h>
-#include <carmory/error.h>
-#include <carmory/io_utils.h>
-#include <carmory/string.h>
+#include <minix/argparse.h>
+#include <minix/error.h>
+#include <minix/io_utils.h>
+#include <minix/string.h>
 
 static int print_callback(struct argparse *ap, struct option *opt)
 {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(carmory C)
+project(minix C)
 
 include_directories(SYSTEM include)
 

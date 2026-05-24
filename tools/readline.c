@@ -9,7 +9,7 @@
  * author: Luo Tiansheng
  * created: 2025/10/24
  */
-#include <carmory/readline.h>
+#include <minix/readline.h>
 #include <wchar.h>
 #include <locale.h>
 #include <stdio.h>

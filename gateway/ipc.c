@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <time.h>
 
-#include "carmory/compiler_attrs.h"
+#include "minix/compiler_attrs.h"
 #include "utils/endian.h"
 
 #define MAX_BODY 4096

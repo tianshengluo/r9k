@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <carmory/argparse.h>
-#include <carmory/string.h>
-#include <carmory/error.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/argparse.h>
+#include <minix/string.h>
+#include <minix/error.h>
+#include <minix/compiler_attrs.h>
 
 static struct option *no_pretty;
 

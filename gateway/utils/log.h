@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include <errno.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/compiler_attrs.h>
 
 __attr_printf(2, 3)
 void _logger_record(const char *level, const char *fmt, ...);

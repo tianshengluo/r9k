@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <carmory/error.h>
+#include <minix/error.h>
 
 int main(int argc, char *argv[])
 {

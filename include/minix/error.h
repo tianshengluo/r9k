@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/compiler_attrs.h>
 
 __attr_unused
 __attr_printf(1, 2)

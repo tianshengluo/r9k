@@ -5,8 +5,8 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <carmory/ssl/md5.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/ssl/md5.h>
+#include <minix/compiler_attrs.h>
 
 int main(int argc, char *argv[])
 {

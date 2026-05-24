@@ -3,8 +3,8 @@
  * Copyright (c) 2025
  */
 #include <string.h>
-#include <carmory/readline.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/readline.h>
+#include <minix/compiler_attrs.h>
 
 int main(int argc, char* argv[])
 {

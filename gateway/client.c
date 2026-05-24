@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <carmory/readline.h>
+#include <minix/readline.h>
 
 #include "io/socket.h"
 #include "config.h"

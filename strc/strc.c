@@ -8,9 +8,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
-#include <carmory/argparse.h>
-#include <carmory/string.h>
-#include <carmory/error.h>
+#include <minix/argparse.h>
+#include <minix/string.h>
+#include <minix/error.h>
 
 #define BUFSIZE 262144 /* 256kb */
 

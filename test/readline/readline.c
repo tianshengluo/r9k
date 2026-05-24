@@ -4,12 +4,12 @@
  *
  */
 #include <stdio.h>
-#include <carmory/readline.h>
+#include <minix/readline.h>
 
 int main(int argc, char *argv[])
 {
         while (1) {
-                const char *str = readline("carmory > ");
+                const char *str = readline("minix > ");
 
                 if (!str)
                         continue;

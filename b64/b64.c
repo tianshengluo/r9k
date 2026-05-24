@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <carmory/argparse.h>
-#include <carmory/error.h>
-#include <carmory/io_utils.h>
-#include <carmory/string.h>
+#include <minix/argparse.h>
+#include <minix/error.h>
+#include <minix/io_utils.h>
+#include <minix/string.h>
 
 #include "base64.h"
 

@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <carmory/compiler_attrs.h>
+#include <minix/compiler_attrs.h>
 
 struct buffer {
         uint8_t *base;
